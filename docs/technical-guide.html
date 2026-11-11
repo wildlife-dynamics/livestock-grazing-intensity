@@ -21,23 +21,133 @@
 
   <main>
     <h1>Technical Guide</h1>
-    <p class="lede">The steps livestock-grazing-intensity runs, the packages they come from, and how to recompile and test it.</p>
+    <p class="lede">How livestock-grazing-intensity calculates its metrics, the steps it runs, the packages they come from, and how to recompile and test it.</p>
+
+    <h2 id="metrics">How the metrics are calculated</h2>
+    <p><code>build_grazing_metrics</code> builds the table every widget reads, one row per grazing period.</p>
+    <ol>
+      <li><strong>Grazing periods.</strong> Each movement event starts a period in the blocks in its <code>TO</code> list. The period ends when the next movement event in the same zone starts. Times are cut to the day. Repeated moves to the same blocks on the same day count as one move, and the last one is kept.</li>
+      <li><strong>Area.</strong> The sum of the <code>area_ha</code> of the period's blocks. Block names are matched to feature names ignoring case and spaces. If any block has no match, the area is left blank and the run logs <code>Blocks with no matching feature name: […]</code>.</li>
+      <li><strong>Cattle.</strong> Counts are added together per zone per day. Each period takes the zone's most recent count on or before its date in. Every count taken during the period adds a row from that day on.</li>
+      <li><strong>Previous grazing end.</strong> The latest date out of any earlier period that used any of the same blocks.</li>
+    </ol>
+    <table>
+      <thead><tr><th>Column</th><th>Formula</th></tr></thead>
+      <tbody>
+        <tr><td>Grazing duration (days)</td><td>date out − date in</td></tr>
+        <tr><td>Recovery days</td><td>date in − previous grazing end date</td></tr>
+        <tr><td>Stocking density (cattle/ha)</td><td>cattle ÷ area</td></tr>
+        <tr><td>Stock intensity (cattle-days/ha)</td><td>cattle × duration ÷ area</td></tr>
+        <tr><td>Grazing intensity (cattle-days/ha)</td><td>cattle × duration ÷ area (the same value as stock intensity; both are kept on purpose)</td></tr>
+        <tr><td>Grazing to Rest ratio</td><td>duration ÷ recovery days, blank when recovery is 0 or unknown</td></tr>
+        <tr><td>Effective grazing intensity (cattle/ha over graze+rest cycle)</td><td>cattle × duration ÷ (area × (duration + recovery days))</td></tr>
+      </tbody>
+    </table>
+    <p>The other columns are Grazing Zone, Grazing block, Area of grazing block(s) (ha), Date in, Date out, Cattle count, Cattle count date and Previous grazing end date.</p>
 
     <h2>Steps</h2>
-    <p>In the order they run. Each step is a task from one of the packages below.</p>
+    <p>Grouped by stage. The id is the step's key in <code>spec.yaml</code>. For the form steps, it is also the key in the run's parameters.</p>
+
+    <h3>Settings (shown on the run form)</h3>
     <table>
-      <thead><tr><th>#</th><th>Step</th><th>Task</th><th>Group</th><th>What it does</th></tr></thead>
-      <tbody><tr><td>1</td><td><strong>Set Er Connection</strong></td><td><code>set_er_connection</code></td><td></td><td></td></tr><tr><td>2</td><td><strong>Set Time Range</strong></td><td><code>set_time_range</code></td><td></td><td>Choose the period of time to analyze.</td></tr><tr><td>3</td><td><strong>Get Events</strong></td><td><code>get_events</code></td><td></td><td>Get events.</td></tr><tr><td>4</td><td><strong>Get Events</strong></td><td><code>get_events</code></td><td></td><td>Get events.</td></tr><tr><td>5</td><td><strong>Extract Column As Type</strong></td><td><code>extract_column_as_type</code></td><td></td><td></td></tr><tr><td>6</td><td><strong>Extract Column As Type</strong></td><td><code>extract_column_as_type</code></td><td></td><td></td></tr><tr><td>7</td><td><strong>Get Features By Type</strong></td><td><code>get_features_by_type</code></td><td></td><td>Fetch every feature of the chosen EarthRanger feature types as a GeoDataFrame, with each feature&#x27;s type and set.</td></tr><tr><td>8</td><td><strong>Estimate Utm Crs</strong></td><td><code>estimate_utm_crs</code></td><td></td><td>Estimate the best UTM CRS for a GeoDataFrame and return it as an EPSG string.</td></tr><tr><td>9</td><td><strong>Normalize Json Column</strong></td><td><code>normalize_json_column</code></td><td></td><td></td></tr><tr><td>10</td><td><strong>Normalize Json Column</strong></td><td><code>normalize_json_column</code></td><td></td><td></td></tr><tr><td>11</td><td><strong>Drop livestock column prefix</strong></td><td><code>drop_column_prefix</code></td><td></td><td>Remove a prefix from column names in a DataFrame with duplicate handling.</td></tr><tr><td>12</td><td><strong>Drop cattle column prefix</strong></td><td><code>drop_column_prefix</code></td><td></td><td>Remove a prefix from column names in a DataFrame with duplicate handling.</td></tr><tr><td>13</td><td><strong>Add Area Columns</strong></td><td><code>add_area_columns</code></td><td></td><td>Add one area column per requested unit, named `{prefix}_{unit}` (e.g. area_m2, area_ha, area_km2, area_acre, area_mi2).</td></tr><tr><td>14</td><td><strong>Map Columns</strong></td><td><code>map_columns</code></td><td></td><td>Maps and transforms the columns of a DataFrame based on the provided parameters. The order of the operations is as follows: drop columns, retain/reorder columns, and rename columns.</td></tr><tr><td>15</td><td><strong>Merge Block Movements</strong></td><td><code>merge_block_movements</code></td><td></td><td>Merge all columns that contain from/to block information into two columns, FROM and TO.</td></tr><tr><td>16</td><td><strong>Map Column Value</strong></td><td><code>map_column_value</code></td><td></td><td>Map values in ``col`` through ``mapping`` and write the result to a new column.</td></tr><tr><td>17</td><td><strong>Apply Color Map</strong></td><td><code>apply_color_map</code></td><td></td><td>Adds a color column to the dataframe based on the categorical values in the specified column.</td></tr><tr><td>18</td><td><strong>Map Columns</strong></td><td><code>map_columns</code></td><td></td><td>Maps and transforms the columns of a DataFrame based on the provided parameters. The order of the operations is as follows: drop columns, retain/reorder columns, and rename columns.</td></tr><tr><td>19</td><td><strong>Build Grazing Metrics</strong></td><td><code>build_grazing_metrics</code></td><td></td><td>One row per grazing period (zone, block set, date in -&gt; date out), split by cattle count changes.</td></tr><tr><td>20</td><td><strong>Draw Grouped Line Time Series Chart</strong></td><td><code>draw_grouped_line_time_series_chart</code></td><td></td><td>Multi-line time series chart, optionally stacked as filled area.</td></tr><tr><td>21</td><td><strong>Draw Grouped Line Time Series Chart</strong></td><td><code>draw_grouped_line_time_series_chart</code></td><td></td><td>Multi-line time series chart, optionally stacked as filled area.</td></tr><tr><td>22</td><td><strong>Draw Stat Sparkline</strong></td><td><code>draw_stat_sparkline</code></td><td></td><td>Single value widget with a sparkline: a headline number (value_column aggregated over the whole frame), an optional caption (e.g. &quot;182 patrols with sightings&quot;) and a sparkline of the same aggregate per time bucket. Returned as plotly HTML for create_plot_widget_single_view.</td></tr><tr><td>23</td><td><strong>Draw Stat Sparkline</strong></td><td><code>draw_stat_sparkline</code></td><td></td><td>Single value widget with a sparkline: a headline number (value_column aggregated over the whole frame), an optional caption (e.g. &quot;182 patrols with sightings&quot;) and a sparkline of the same aggregate per time bucket. Returned as plotly HTML for create_plot_widget_single_view.</td></tr><tr><td>24</td><td><strong>Draw Stat Sparkline</strong></td><td><code>draw_stat_sparkline</code></td><td></td><td>Single value widget with a sparkline: a headline number (value_column aggregated over the whole frame), an optional caption (e.g. &quot;182 patrols with sightings&quot;) and a sparkline of the same aggregate per time bucket. Returned as plotly HTML for create_plot_widget_single_view.</td></tr><tr><td>25</td><td><strong>Merge Two Dataframes</strong></td><td><code>merge_two_dataframes</code></td><td></td><td>Merge two DataFrames using a database-style join.</td></tr><tr><td>26</td><td><strong>Persist Stock Intensity Text</strong></td><td><code>persist_text</code></td><td></td><td>Persist text to a file or cloud storage object.</td></tr><tr><td>27</td><td><strong>Persist Text</strong></td><td><code>persist_text</code></td><td></td><td>Persist text to a file or cloud storage object.</td></tr><tr><td>28</td><td><strong>Persist Text</strong></td><td><code>persist_text</code></td><td></td><td>Persist text to a file or cloud storage object.</td></tr><tr><td>29</td><td><strong>Persist Text</strong></td><td><code>persist_text</code></td><td></td><td>Persist text to a file or cloud storage object.</td></tr><tr><td>30</td><td><strong>Persist Text</strong></td><td><code>persist_text</code></td><td></td><td>Persist text to a file or cloud storage object.</td></tr><tr><td>31</td><td><strong>Dataframe To Geodataframe</strong></td><td><code>dataframe_to_geodataframe</code></td><td></td><td>Convert a plain DataFrame into a GeoDataFrame.</td></tr><tr><td>32</td><td><strong>Create Stock Intensity Sparkline View</strong></td><td><code>create_plot_widget_single_view</code></td><td></td><td>Create a plot widget with a single view.</td></tr><tr><td>33</td><td><strong>Create Plot Widget Single View</strong></td><td><code>create_plot_widget_single_view</code></td><td></td><td>Create a plot widget with a single view.</td></tr><tr><td>34</td><td><strong>Create Plot Widget Single View</strong></td><td><code>create_plot_widget_single_view</code></td><td></td><td>Create a plot widget with a single view.</td></tr><tr><td>35</td><td><strong>Create Plot Widget Single View</strong></td><td><code>create_plot_widget_single_view</code></td><td></td><td>Create a plot widget with a single view.</td></tr><tr><td>36</td><td><strong>Create Plot Widget Single View</strong></td><td><code>create_plot_widget_single_view</code></td><td></td><td>Create a plot widget with a single view.</td></tr><tr><td>37</td><td><strong>Apply Choropleth Colormap</strong></td><td><code>apply_choropleth_colormap</code></td><td></td><td>Colours a numeric column for choropleth display using Natural Breaks (Jenks) classification.</td></tr><tr><td>38</td><td><strong>Compute View State From Gdf</strong></td><td><code>compute_view_state_from_gdf</code></td><td></td><td></td></tr><tr><td>39</td><td><strong>Create Geojson Layer</strong></td><td><code>create_geojson_layer</code></td><td></td><td>Creates a GeoJSON layer definition based on the provided configuration.</td></tr><tr><td>40</td><td><strong>Create Geojson Layer</strong></td><td><code>create_geojson_layer</code></td><td></td><td>Creates a GeoJSON layer definition based on the provided configuration.</td></tr><tr><td>41</td><td><strong>Combine Deckgl Map Layers</strong></td><td><code>combine_deckgl_map_layers</code></td><td></td><td>Combine static and grouped map layers into a render-ready list.</td></tr><tr><td>42</td><td><strong>Merge Widget Views</strong></td><td><code>merge_widget_views</code></td><td></td><td>Merge widgets with the same `title` and `widget_type`.</td></tr><tr><td>43</td><td><strong>Set Base Maps</strong></td><td><code>set_base_maps</code></td><td></td><td></td></tr><tr><td>44</td><td><strong>Draw Map</strong></td><td><code>draw_map</code></td><td></td><td>Creates a map based on the provided layer definitions and configuration.</td></tr><tr><td>45</td><td><strong>Merge Widget Views</strong></td><td><code>merge_widget_views</code></td><td></td><td>Merge widgets with the same `title` and `widget_type`.</td></tr><tr><td>46</td><td><strong>Merge Widget Views</strong></td><td><code>merge_widget_views</code></td><td></td><td>Merge widgets with the same `title` and `widget_type`.</td></tr><tr><td>47</td><td><strong>Persist Text</strong></td><td><code>persist_text</code></td><td></td><td>Persist text to a file or cloud storage object.</td></tr><tr><td>48</td><td><strong>Merge Widget Views</strong></td><td><code>merge_widget_views</code></td><td></td><td>Merge widgets with the same `title` and `widget_type`.</td></tr><tr><td>49</td><td><strong>Create Map Widget Single View</strong></td><td><code>create_map_widget_single_view</code></td><td></td><td>Create a map widget with a single view.</td></tr><tr><td>50</td><td><strong>Merge Widget Views</strong></td><td><code>merge_widget_views</code></td><td></td><td>Merge widgets with the same `title` and `widget_type`.</td></tr><tr><td>51</td><td><strong>Set Workflow Details</strong></td><td><code>set_workflow_details</code></td><td></td><td>Add information that will help to differentiate this workflow from another.</td></tr><tr><td>52</td><td><strong>Merge Widget Views</strong></td><td><code>merge_widget_views</code></td><td></td><td>Merge widgets with the same `title` and `widget_type`.</td></tr><tr><td>53</td><td><strong>Set Groupers</strong></td><td><code>set_groupers</code></td><td></td><td></td></tr><tr><td>54</td><td><strong>Persist Df</strong></td><td><code>persist_df</code></td><td></td><td>Persist dataframe to a file or cloud storage object.</td></tr><tr><td>55</td><td><strong>Gather Dashboard</strong></td><td><code>gather_dashboard</code></td><td></td><td></td></tr></tbody>
+      <thead><tr><th>Step</th><th>id</th><th>Task</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Workflow Details</strong></td><td><code>workflow_details</code></td><td><code>set_workflow_details</code></td><td>The run's name, shown on the dashboard.</td></tr>
+        <tr><td><strong>Data Source</strong></td><td><code>er_connection</code></td><td><code>set_er_connection</code></td><td>The EarthRanger connection every fetch uses.</td></tr>
+        <tr><td><strong>Time Range</strong></td><td><code>time_range</code></td><td><code>set_time_range</code></td><td>The period to fetch events for.</td></tr>
+        <tr><td><strong>Livestock Movement Events</strong></td><td><code>livestock_movement_events</code></td><td><code>get_events</code></td><td>Fetches the movement events, with their details.</td></tr>
+        <tr><td><strong>Cattle Count Events</strong></td><td><code>cattle_count_events</code></td><td><code>get_events</code></td><td>Fetches the cattle count events, with their details.</td></tr>
+        <tr><td><strong>Grazing Block Features</strong></td><td><code>features_by_type</code></td><td><code>get_features_by_type</code></td><td>Fetches the grazing block polygons.</td></tr>
+        <tr><td><strong>Base Maps</strong></td><td><code>base_maps</code></td><td><code>set_base_maps</code></td><td>The tile layers under the map.</td></tr>
+        <tr><td><strong>Dashboard Groupers</strong></td><td><code>dashboard_groupers</code></td><td><code>set_groupers</code></td><td>None. The dashboard isn't split into views.</td></tr>
+      </tbody>
     </table>
+
+    <h3>Preparing the events</h3>
+    <table>
+      <thead><tr><th>Step</th><th>id</th><th>Task</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Add Livestock Movement Date</strong></td><td><code>livestock_movement_dated</code></td><td><code>extract_column_as_type</code></td><td>Adds a <code>date</code> column from the event time.</td></tr>
+        <tr><td><strong>Expand Livestock Movement Details</strong></td><td><code>livestock_movement_details</code></td><td><code>normalize_json_column</code></td><td>Turns <code>event_details</code> into one column per field.</td></tr>
+        <tr><td><strong>Clean Livestock Movement Column Names</strong></td><td><code>livestock_movement_cleaned</code></td><td><code>drop_column_prefix</code></td><td>Drops the <code>event_details__</code> prefix.</td></tr>
+        <tr><td><strong>Merge Livestock From/To Blocks</strong></td><td><code>livestock_block_movements</code></td><td><code>merge_block_movements</code></td><td>Merges every from/to field into <code>FROM</code> and <code>TO</code> lists, and renames <code>communityzone</code> to <code>Community/Zone</code>.</td></tr>
+        <tr><td><strong>Convert Cattle Count Time to Date</strong></td><td><code>cattle_count_dated</code></td><td><code>extract_column_as_type</code></td><td>Replaces <code>time</code> with its date.</td></tr>
+        <tr><td><strong>Expand Cattle Count Details</strong></td><td><code>cattle_count_details</code></td><td><code>normalize_json_column</code></td><td>Turns <code>event_details</code> into one column per field.</td></tr>
+        <tr><td><strong>Clean Cattle Count Column Names</strong></td><td><code>cattle_count_cleaned</code></td><td><code>drop_column_prefix</code></td><td>Drops the <code>event_details__</code> prefix.</td></tr>
+        <tr><td><strong>Rename Cattle Count Columns</strong></td><td><code>cattle_count_renamed</code></td><td><code>map_columns</code></td><td>Renames <code>communityzone</code> to <code>Community/Zone</code> and <code>count</code> to <code>Count</code>. Fails if either is missing.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Grazing blocks</h3>
+    <table>
+      <thead><tr><th>Step</th><th>id</th><th>Task</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Estimate UTM Projection for Grazing Blocks</strong></td><td><code>grazing_block_utm_crs</code></td><td><code>estimate_utm_crs</code></td><td>Picks the UTM zone the areas are measured in.</td></tr>
+        <tr><td><strong>Calculate Grazing Block Areas</strong></td><td><code>grazing_block_areas</code></td><td><code>add_area_columns</code></td><td>Adds <code>area_ha</code>, rounded to 2 decimals.</td></tr>
+        <tr><td><strong>Color Grazing Zone Boundaries</strong></td><td><code>zone_boundary_colors</code></td><td><code>apply_color_map</code></td><td>Gives each feature type a colour for the boundaries layer.</td></tr>
+        <tr><td><strong>Keep Grazing Block ID, Name and Geometry</strong></td><td><code>grazing_block_geometry</code></td><td><code>map_columns</code></td><td>Keeps the columns needed to put metrics on the map.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Metrics</h3>
+    <table>
+      <thead><tr><th>Step</th><th>id</th><th>Task</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Calculate Grazing Metrics</strong></td><td><code>grazing_metrics</code></td><td><code>build_grazing_metrics</code></td><td>Builds the grazing metrics table. See <a href="#metrics">above</a>.</td></tr>
+        <tr><td><strong>Save Grazing Metrics CSV</strong></td><td><code>grazing_metrics_csv</code></td><td><code>persist_df</code></td><td>Writes the table to the results folder as CSV.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Charts and sparklines</h3>
+    <p>Each one is drawn, saved as HTML, wrapped in a widget, and merged into the dashboard's widget list.</p>
+    <table>
+      <thead><tr><th>Widget</th><th>Draw</th><th>Save</th><th>Widget</th><th>Merge</th><th>Plots</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Stocking Intensity</strong></td><td><code>stock_intensity_sparkline</code></td><td><code>stock_intensity_sparkline_html</code></td><td><code>stock_intensity_widget</code></td><td><code>stock_intensity_views</code></td><td>Mean Stock intensity, monthly sparkline</td></tr>
+        <tr><td><strong>Stocking Density</strong></td><td><code>stocking_density_sparkline</code></td><td><code>stocking_density_sparkline_html</code></td><td><code>stocking_density_widget</code></td><td><code>stocking_density_views</code></td><td>Mean Stocking density, monthly sparkline</td></tr>
+        <tr><td><strong>Grazing to Rest Ratio</strong></td><td><code>graze_rest_ratio_sparkline</code></td><td><code>graze_rest_ratio_sparkline_html</code></td><td><code>graze_rest_ratio_widget</code></td><td><code>graze_rest_ratio_views</code></td><td>Mean Grazing to Rest ratio, monthly sparkline</td></tr>
+        <tr><td><strong>Grazing Intensity</strong></td><td><code>grazing_intensity_chart</code></td><td><code>grazing_intensity_chart_html</code></td><td><code>grazing_intensity_widget</code></td><td><code>grazing_intensity_views</code></td><td>Monthly mean Grazing intensity per Grazing Zone</td></tr>
+        <tr><td><strong>Effective Grazing Intensity</strong></td><td><code>effective_intensity_chart</code></td><td><code>effective_intensity_chart_html</code></td><td><code>effective_intensity_widget</code></td><td><code>effective_intensity_views</code></td><td>Monthly mean Effective grazing intensity per Grazing Zone</td></tr>
+      </tbody>
+    </table>
+    <p>The sparklines and charts bin rows by <em>Date in</em> and take a plain mean over rows. Periods split by a cattle count are therefore counted once per count.</p>
+
+    <h3>Map</h3>
+    <table>
+      <thead><tr><th>Step</th><th>id</th><th>Task</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Join Grazing Metrics to Block Geometry</strong></td><td><code>grazing_metrics_with_geometry</code></td><td><code>merge_two_dataframes</code></td><td>Left-joins feature geometry onto the metrics where Grazing Zone equals the feature <code>name</code> (exact match).</td></tr>
+        <tr><td><strong>Convert Grazing Metrics to Map Data</strong></td><td><code>grazing_metrics_gdf</code></td><td><code>dataframe_to_geodataframe</code></td><td>Makes it a GeoDataFrame in EPSG:4326, keeping rows with no geometry.</td></tr>
+        <tr><td><strong>Color Blocks by Cattle Count</strong></td><td><code>cattle_count_colors</code></td><td><code>apply_choropleth_colormap</code></td><td>Colours Cattle count in up to 5 Natural Breaks classes (Blues).</td></tr>
+        <tr><td><strong>Zoom Map to Grazing Blocks</strong></td><td><code>map_view_state</code></td><td><code>compute_view_state_from_gdf</code></td><td>Sets the map's starting view.</td></tr>
+        <tr><td><strong>Cattle Count Layer</strong></td><td><code>cattle_count_layer</code></td><td><code>create_geojson_layer</code></td><td>Filled zones with a Cattle Count legend.</td></tr>
+        <tr><td><strong>Grazing Zone Boundaries Layer</strong></td><td><code>zone_boundaries_layer</code></td><td><code>create_geojson_layer</code></td><td>Black outlines of every fetched feature.</td></tr>
+        <tr><td><strong>Combine Map Layers</strong></td><td><code>map_layers</code></td><td><code>combine_deckgl_map_layers</code></td><td>Boundaries as the static layer, cattle counts on top.</td></tr>
+        <tr><td><strong>Draw Livestock Count Map</strong></td><td><code>livestock_count_map</code></td><td><code>draw_map</code></td><td>Draws the map over the base maps.</td></tr>
+        <tr><td><strong>Save Livestock Count Map</strong></td><td><code>livestock_count_map_html</code></td><td><code>persist_text</code></td><td>Writes the map HTML to the results folder.</td></tr>
+        <tr><td><strong>Livestock Count Map Widget</strong></td><td><code>livestock_count_map_widget</code></td><td><code>create_map_widget_single_view</code></td><td>The Livestock Count widget.</td></tr>
+        <tr><td><strong>Merge Livestock Count Map Widget</strong></td><td><code>livestock_count_map_views</code></td><td><code>merge_widget_views</code></td><td>Adds it to the dashboard's widget list.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Dashboard</h3>
+    <table>
+      <thead><tr><th>Step</th><th>id</th><th>Task</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Gather Dashboard</strong></td><td><code>dashboard</code></td><td><code>gather_dashboard</code></td><td>Puts the six widgets on the dashboard in this order: the three sparklines, the two charts, then the map.</td></tr>
+      </tbody>
+    </table>
+    <p class="note">Steps are skipped when an input is an empty table or an earlier step was skipped. The widget steps never skip, so the dashboard always has all six widgets.</p>
 
     <h2>Task packages</h2>
     <table>
       <thead><tr><th>Package</th><th>Version</th><th>Channel</th></tr></thead>
-      <tbody><tr><td><code>ecoscope-platform</code></td><td>==2.28.0</td><td>https://repo.prefix.dev/ecoscope-workflows/</td></tr><tr><td><code>ecoscope-workflows-ext-custom</code></td><td>==0.1.5</td><td>https://repo.prefix.dev/ecoscope-workflows-custom/</td></tr><tr><td><code>ecoscope-workflows-ext-eden</code></td><td>==0.0.12</td><td>https://repo.prefix.dev/ecoscope-workflows-custom/</td></tr><tr><td><code>pydeck</code></td><td>==0.9.2</td><td>conda-forge</td></tr><tr><td><code>ecoscope-workflows-ext-distance-sample-counts</code></td><td>==1.1.6.dev0+gb9b5e7cf8.d20261111</td><td>file:///tmp/ecoscope-workflows-custom/release/artifacts/</td></tr><tr><td><code>ecoscope-workflows-ext-mep</code></td><td>==1.11.2</td><td>https://repo.prefix.dev/ecoscope-workflows-custom/</td></tr><tr><td><code>ecoscope-workflows-ext-wwf-virunga</code></td><td>==1.0.1</td><td>https://repo.prefix.dev/ecoscope-workflows-custom/</td></tr><tr><td><code>ecoscope-workflows-ext-ste</code></td><td>==0.0.34</td><td>https://repo.prefix.dev/ecoscope-workflows-custom/</td></tr></tbody>
+      <tbody><tr><td><code>ecoscope-platform</code></td><td>==2.28.0</td><td>https://repo.prefix.dev/ecoscope-workflows/</td></tr><tr><td><code>ecoscope-workflows-ext-custom</code></td><td>==0.1.5</td><td>https://repo.prefix.dev/ecoscope-workflows-custom/</td></tr><tr><td><code>ecoscope-workflows-ext-eden</code></td><td>==0.0.12</td><td>https://repo.prefix.dev/ecoscope-workflows-custom/</td></tr><tr><td><code>pydeck</code></td><td>==0.9.2</td><td>conda-forge</td></tr><tr><td><code>ecoscope-workflows-ext-distance-sample-counts</code></td><td>==1.1.6</td><td>https://repo.prefix.dev/ecoscope-workflows-custom/</td></tr><tr><td><code>ecoscope-workflows-ext-mep</code></td><td>==1.11.2</td><td>https://repo.prefix.dev/ecoscope-workflows-custom/</td></tr><tr><td><code>ecoscope-workflows-ext-wwf-virunga</code></td><td>==1.0.1</td><td>https://repo.prefix.dev/ecoscope-workflows-custom/</td></tr><tr><td><code>ecoscope-workflows-ext-ste</code></td><td>==0.0.34</td><td>https://repo.prefix.dev/ecoscope-workflows-custom/</td></tr></tbody>
     </table>
+    <p>The grazing tasks (<code>merge_block_movements</code>, <code>build_grazing_metrics</code>, <code>add_area_columns</code>, <code>dataframe_to_geodataframe</code>) come from <code>ecoscope-workflows-ext-distance-sample-counts</code>.</p>
 
     <h2>Recompiling</h2>
-    <p><code>spec.yaml</code> is the source; <code>ecoscope-workflows-livestock-grazing-intensity-workflow/</code> is generated from it by wt-compiler.</p>
+    <p><code>spec.yaml</code> is the source. wt-compiler generates <code>ecoscope-workflows-livestock-grazing-intensity-workflow/</code> from it.</p>
     <pre><code>./dev/recompile.sh --update   # keeps the lock file and bumps VERSION.yaml
 ./dev/recompile.sh --install  # a new lock file, and the packages installed</code></pre>
 

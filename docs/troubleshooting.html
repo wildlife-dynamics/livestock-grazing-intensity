@@ -32,10 +32,52 @@
 
     <div class="error-block">
       <p class="symptom">The run returns no data</p>
-      <p>Names typed into the settings (a subject group, an event type) must match the data source exactly, including capitals. Widen the time range if it's short.</p>
+      <p>The event types and feature type names in the settings must match the data source exactly, including capitals. Widen the time range if it's short.</p>
+    </div>
+
+    <div class="error-block">
+      <p class="symptom">Rename Cattle Count Columns fails: a column is not found</p>
+      <p>The cattle count event type needs <code>communityzone</code> and <code>count</code> fields in its event details. Check the event type selected under <strong>Cattle Count Events</strong>, and the field names in its EarthRanger schema.</p>
+    </div>
+
+    <h2>Blank or unexpected values</h2>
+
+    <div class="error-block">
+      <p class="symptom">Area, stocking density and intensity are blank for some blocks</p>
+      <p>A block in the movement events has no feature with the same name. Capitals and spaces are ignored, but other spelling differences aren't. The run log lists them as <code>Blocks with no matching feature name: […]</code>. Rename the feature or fix the block name, or add the missing feature type under <strong>Grazing Block Features</strong>.</p>
+    </div>
+
+    <div class="error-block">
+      <p class="symptom">Recovery days and the grazing to rest ratio are blank</p>
+      <p>The block wasn't grazed earlier in the time range, so there's no previous grazing to measure from. Move <strong>Since</strong> earlier to include it.</p>
+    </div>
+
+    <div class="error-block">
+      <p class="symptom">The latest period in a zone has no date out or duration</p>
+      <p>That's expected: the herd hasn't moved on yet, so the period is still open. It gets a date out once the next movement event is recorded.</p>
+    </div>
+
+    <div class="error-block">
+      <p class="symptom">A period has no cattle count</p>
+      <p>The zone has no cattle count on or before the period's date in within the time range. Move <strong>Since</strong> earlier, or check that the count events use the same <code>communityzone</code> values as the movement events.</p>
+    </div>
+
+    <div class="error-block">
+      <p class="symptom">The Livestock Count map is empty or missing zones</p>
+      <p>The map joins each row's Grazing Zone to a feature with exactly the same <code>name</code>, including capitals and spaces. Add a polygon feature for each zone, named like its <code>communityzone</code> value, to a feature type selected under <strong>Grazing Block Features</strong>.</p>
+    </div>
+
+    <div class="error-block">
+      <p class="symptom">Movement events have empty block lists</p>
+      <p>Only fields named <code>from</code>, <code>*_from</code>, <code>to</code>, <code>to_block</code> or <code>*_to</code> are read as blocks. Fields named any other way are ignored.</p>
     </div>
 
     <h2>Developing</h2>
+
+    <div class="error-block">
+      <p class="symptom">Recompiling fails with “Lock-file version 7 is newer than supported”</p>
+      <p>Your pixi is older than the lock format the compiler writes. Run <code>pixi self-update</code> and recompile.</p>
+    </div>
 
     <div class="error-block">
       <p class="symptom">CI says the generated files differ from the committed ones</p>

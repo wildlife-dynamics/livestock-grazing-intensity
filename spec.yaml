@@ -3,60 +3,91 @@ requirements:
 - name: ecoscope-platform
   version: ==2.28.0
   channel: https://repo.prefix.dev/ecoscope-workflows/
+
 - name: ecoscope-workflows-ext-custom
   version: ==0.1.5
   channel: https://repo.prefix.dev/ecoscope-workflows-custom/
+
 - name: ecoscope-workflows-ext-eden
   version: ==0.0.12
   channel: https://repo.prefix.dev/ecoscope-workflows-custom/
+
 - name: pydeck
   version: ==0.9.2
   channel: conda-forge
+
 - name: ecoscope-workflows-ext-distance-sample-counts
-  version: ==1.1.6.dev0+gb9b5e7cf8.d20261111
-  channel: file:///tmp/ecoscope-workflows-custom/release/artifacts/
+  version: ==1.1.6
+  channel: https://repo.prefix.dev/ecoscope-workflows-custom/
+
 - name: ecoscope-workflows-ext-mep
   version: ==1.11.2
   channel: https://repo.prefix.dev/ecoscope-workflows-custom/
+
 - name: ecoscope-workflows-ext-wwf-virunga
   version: ==1.0.1
   channel: https://repo.prefix.dev/ecoscope-workflows-custom/
+
 - name: ecoscope-workflows-ext-ste
   version: ==0.0.34
   channel: https://repo.prefix.dev/ecoscope-workflows-custom/
+
 task-instance-defaults:
   skipif:
     conditions:
     - any_is_empty_df
     - any_dependency_skipped
+
+rjsf-overrides:
+  properties:
+    events.properties.event_types.ecoscope:transform:
+    - transformer: EarthRangerEnumResolver
+      transformer_kws:
+        type: event_type
+        depends_on: properties.er_connection.properties.data_source.properties.name
+
 workflow:
-- name: Set Er Connection
+- name: Workflow Details
+  id: workflow_details
+  task: set_workflow_details
+  partial:
+    description: ''
+
+- name: Data Source
   id: er_connection
   task: set_er_connection
-- name: Set Time Range
+
+- name: Time Range
   id: time_range
   task: set_time_range
   partial:
     time_format: '%d %b %Y %H:%M:%S'
-- name: Get Events
-  id: livestock_movement_events
+
+- name: Dashboard Groupers
+  id: dashboard_groupers
+  task: set_groupers
+  partial:
+    groupers: null
+
+- name: Livestock Movement Events
+  id: events
   task: get_events
   partial:
     client: ${{ workflow.er_connection.return }}
     time_range: ${{ workflow.time_range.return }}
     include_details: true
-    event_columns: &id001
-    - id
-    - time
-    - event_type
-    - event_category
-    - title
-    - reported_by
-    - created_at
-    - serial_number
-    - is_collection
-    - event_details
-    - geometry
+    event_columns:
+      - id
+      - time
+      - event_type
+      - event_category
+      - title
+      - reported_by
+      - created_at
+      - serial_number
+      - is_collection
+      - event_details
+      - geometry
     event_states: null
     include_null_geometry: true
     raise_on_empty: false
@@ -64,154 +95,167 @@ workflow:
     include_related_events: false
     include_display_values: true
     force_point_geometry: true
-- name: Get Events
-  id: cattle_count_events
-  task: get_events
-  partial:
-    client: ${{ workflow.er_connection.return }}
-    time_range: ${{ workflow.time_range.return }}
-    include_details: true
-    event_columns: *id001
-    event_states: null
-    include_null_geometry: true
-    raise_on_empty: false
-    include_updates: false
-    include_related_events: false
-    include_display_values: true
-    force_point_geometry: true
-- name: Extract Column As Type
-  id: extract_cattle_count_date
+
+- name: Base Maps
+  id: base_maps
+  task: set_base_maps
+
+- name: Add Livestock Movement Date
+  id: livestock_movement_dated
   task: extract_column_as_type
   partial:
-    df: ${{ workflow.cattle_count_events.return }}
-    column_name: time
-    output_type: date
-    output_column_name: time
-    fan_out: true
-- name: Extract Column As Type
-  id: extract_livestock_date
-  task: extract_column_as_type
-  partial:
-    df: ${{ workflow.livestock_movement_events.return }}
+    df: ${{ workflow.events.return }}
     column_name: time
     output_type: date
     output_column_name: date
     fan_out: true
-- name: Get Features By Type
+
+- name: Filter out livestock events 
+  id: filter_livestock_events
+  task: filter_row_values 
+  partial:
+    df: ${{ workflow.livestock_movement_dated.return }}
+    column: event_type
+    values:
+     - livestock_block_movement
+
+- name: Filter out cattle count events 
+  id: filter_cattle_count_events
+  task: filter_row_values 
+  partial:
+    df: ${{ workflow.livestock_movement_dated.return }}
+    column: event_type
+    values:
+     - cattle_count
+
+- name: Grazing Block Features
   id: features_by_type
   task: get_features_by_type
   partial:
     client: ${{ workflow.er_connection.return }}
     raise_on_empty: false
-- name: Estimate Utm Crs
-  id: utm_crs
+
+- name: Estimate UTM Projection for Grazing Blocks
+  id: grazing_block_utm_crs
   task: estimate_utm_crs
   partial:
     geodataframe: ${{ workflow.features_by_type.return }}
-- name: Normalize Json Column
-  id: livestock_json_column
+
+- name: Expand Livestock Movement Details
+  id: livestock_movement_details
   task: normalize_json_column
   partial:
-    df: ${{ workflow.extract_livestock_date.return }}
+    df: ${{ workflow.livestock_movement_dated.return }}
     column: event_details
     skip_if_not_exists: true
     sort_columns: true
-- name: Normalize Json Column
-  id: cattle_json_column
+
+- name: Expand Cattle Count Details
+  id: cattle_count_details
   task: normalize_json_column
   partial:
-    df: ${{ workflow.extract_cattle_count_date.return }}
+    df: ${{ workflow.filter_cattle_count_events.return }}
     column: event_details
     skip_if_not_exists: true
     sort_columns: true
-- name: Drop livestock column prefix
-  id: livestock_column_prefix
+
+- name: Clean Livestock Movement Column Names
+  id: livestock_movement_cleaned
   task: drop_column_prefix
   partial:
-    df: ${{ workflow.livestock_json_column.return }}
+    df: ${{ workflow.livestock_movement_details.return }}
     prefix: event_details__
     duplicate_strategy: suffix
-- name: Drop cattle column prefix
-  id: cattle_column_prefix
+
+- name: Clean Cattle Count Column Names
+  id: cattle_count_cleaned
   task: drop_column_prefix
   partial:
-    df: ${{ workflow.cattle_json_column.return }}
+    df: ${{ workflow.cattle_count_details.return }}
     prefix: event_details__
     duplicate_strategy: suffix
-- name: Add Area Columns
-  id: area_columns
+
+- name: Calculate Grazing Block Areas
+  id: grazing_block_areas
   task: add_area_columns
   partial:
-    crs: ${{ workflow.utm_crs.return }}
+    crs: ${{ workflow.grazing_block_utm_crs.return }}
     gdf: ${{ workflow.features_by_type.return }}
     decimals: 2
     units:
     - ha
     prefix: area
-- name: Map Columns
-  id: columns
+
+- name: Rename Cattle Count Columns
+  id: cattle_count_renamed
   task: map_columns
   partial:
-    df: ${{ workflow.cattle_column_prefix.return }}
+    df: ${{ workflow.cattle_count_cleaned.return }}
     rename_columns:
       communityzone: Community/Zone
       count: Count
-    drop_columns: &id002 []
+    drop_columns: []
     retain_columns: []
     raise_if_not_found: true
     duplicate_strategy: suffix
-- name: Merge Block Movements
-  id: block_movements
+
+- name: Merge Livestock From/To Blocks
+  id: livestock_block_movements
   task: merge_block_movements
   partial:
-    events_df: ${{ workflow.livestock_column_prefix.return }}
-- name: Map Column Value
-  id: column_value
-  task: map_column_value
-  partial:
-    df: ${{ workflow.area_columns.return }}
-    col: name
-    mapping:
-      ESILALE ZONE: esilaleii
-      IRBAAN ZONE: irbaan
-      NKOILALE ZONE: nkoilale
-      OLESERE ZONE: olesere
-      OLKURROTO ZONE: olkurroto
-      OLOISUTI ZONE: oloisuti
-      PAYIA ZONE: payia
-    new_col: Grazing Zone
-    default: null
-    keep_unmapped: true
-- name: Apply Color Map
-  id: color_map
+    events_df: ${{ workflow.livestock_movement_cleaned.return }}
+
+# - name: Map Column Value
+#   id: column_value
+#   task: map_column_value
+#   partial:
+#     df: ${{ workflow.grazing_block_areas.return }}
+#     col: name
+#     mapping:
+#       ESILALE ZONE: esilaleii
+#       IRBAAN ZONE: irbaan
+#       NKOILALE ZONE: nkoilale
+#       OLESERE ZONE: olesere
+#       OLKURROTO ZONE: olkurroto
+#       OLOISUTI ZONE: oloisuti
+#       PAYIA ZONE: payia
+#     new_col: Grazing Zone
+#     default: null
+#     keep_unmapped: true
+
+- name: Color Grazing Zone Boundaries
+  id: zone_boundary_colors
   task: apply_color_map
   partial:
-    df: ${{ workflow.column_value.return }}
+    df: ${{ workflow.grazing_block_areas.return }}
     input_column_name: feature_type
     colormap: BrBG
     output_column_name: grazing_zone_colors
-- name: Map Columns
-  id: columns_2
+
+- name: Keep Grazing Block ID, Name and Geometry
+  id: grazing_block_geometry
   task: map_columns
   partial:
-    df: ${{ workflow.column_value.return }}
+    df: ${{ workflow.grazing_block_areas.return }}
     retain_columns:
     - id
-    - Grazing Zone
+    - name
     - geometry
-    drop_columns: *id002
+    drop_columns: []
     rename_columns: {}
     raise_if_not_found: true
     duplicate_strategy: suffix
-- name: Build Grazing Metrics
+
+- name: Calculate Grazing Metrics
   id: grazing_metrics
   task: build_grazing_metrics
   partial:
-    events_df: ${{ workflow.block_movements.return }}
-    cattle_df: ${{ workflow.columns.return }}
-    block_areas_ha: ${{ workflow.area_columns.return }}
-- name: Draw Grouped Line Time Series Chart
-  id: grouped_line_time_series_chart
+    events_df: ${{ workflow.livestock_block_movements.return }}
+    cattle_df: ${{ workflow.cattle_count_renamed.return }}
+    block_areas_ha: ${{ workflow.grazing_block_areas.return }}
+
+- name: Draw Grazing Intensity Chart
+  id: grazing_intensity_chart
   task: draw_grouped_line_time_series_chart
   partial:
     dataframe: ${{ workflow.grazing_metrics.return }}
@@ -229,8 +273,9 @@ workflow:
     layout_style: null
     tick_frequency: null
     widget_id: null
-- name: Draw Grouped Line Time Series Chart
-  id: grouped_line_time_series_chart_2
+
+- name: Draw Effective Grazing Intensity Chart
+  id: effective_intensity_chart
   task: draw_grouped_line_time_series_chart
   partial:
     dataframe: ${{ workflow.grazing_metrics.return }}
@@ -248,7 +293,8 @@ workflow:
     layout_style: null
     tick_frequency: null
     widget_id: null
-- name: Draw Stat Sparkline
+
+- name: Draw Stock Intensity Sparkline
   id: stock_intensity_sparkline
   task: draw_stat_sparkline
   partial:
@@ -263,8 +309,9 @@ workflow:
     caption_agg_function: null
     caption_template: '{value:,.0f}'
     line_color: '#2f6b9a'
-- name: Draw Stat Sparkline
-  id: stock_density_sparkline
+
+- name: Draw Stocking Density Sparkline
+  id: stocking_density_sparkline
   task: draw_stat_sparkline
   partial:
     dataframe: ${{ workflow.grazing_metrics.return }}
@@ -273,13 +320,14 @@ workflow:
     time_column: Date in
     time_frequency: Month
     as_percent: false
-    decimal_places: 0
+    decimal_places: 2
     caption_column: null
     caption_agg_function: null
     caption_template: '{value:,.0f}'
     line_color: '#2f6b9a'
-- name: Draw Stat Sparkline
-  id: stat_sparkline
+
+- name: Draw Grazing to Rest Ratio Sparkline
+  id: graze_rest_ratio_sparkline
   task: draw_stat_sparkline
   partial:
     dataframe: ${{ workflow.grazing_metrics.return }}
@@ -288,115 +336,128 @@ workflow:
     time_column: Date in
     time_frequency: Month
     as_percent: false
-    decimal_places: 0
+    decimal_places: 2
     caption_column: null
     caption_agg_function: null
     caption_template: '{value:,.0f}'
     line_color: '#2f6b9a'
-- name: Merge Two Dataframes
-  id: two_dataframes
+
+- name: Join Grazing Metrics to Block Geometry
+  id: grazing_metrics_with_geometry
   task: merge_two_dataframes
   partial:
-    right: ${{ workflow.columns_2.return }}
+    right: ${{ workflow.grazing_block_geometry.return }}
     left: ${{ workflow.grazing_metrics.return }}
     how: left
-    'on': null
-    left_on: null
-    right_on: null
+    on: null
+    left_on: Grazing Zone
+    right_on: name
     left_index: false
     right_index: false
     fillna_value: null
-- name: Persist Stock Intensity Text
-  id: stock_intensity_text
+
+- name: Save Stock Intensity Sparkline
+  id: stock_intensity_sparkline_html
   task: persist_text
   partial:
     root_path: ${{ env.ECOSCOPE_WORKFLOWS_RESULTS }}
     text: ${{ workflow.stock_intensity_sparkline.return }}
-- name: Persist Text
-  id: text_4
+
+- name: Save Stocking Density Sparkline
+  id: stocking_density_sparkline_html
   task: persist_text
   partial:
     root_path: ${{ env.ECOSCOPE_WORKFLOWS_RESULTS }}
-    text: ${{ workflow.stock_density_sparkline.return }}
-- name: Persist Text
-  id: text_3
+    text: ${{ workflow.stocking_density_sparkline.return }}
+
+- name: Save Grazing to Rest Ratio Sparkline
+  id: graze_rest_ratio_sparkline_html
   task: persist_text
   partial:
     root_path: ${{ env.ECOSCOPE_WORKFLOWS_RESULTS }}
-    text: ${{ workflow.stat_sparkline.return }}
-- name: Persist Text
-  id: text
+    text: ${{ workflow.graze_rest_ratio_sparkline.return }}
+
+- name: Save Grazing Intensity Chart
+  id: grazing_intensity_chart_html
   task: persist_text
   partial:
     root_path: ${{ env.ECOSCOPE_WORKFLOWS_RESULTS }}
-    text: ${{ workflow.grouped_line_time_series_chart.return }}
-- name: Persist Text
-  id: text_2
+    text: ${{ workflow.grazing_intensity_chart.return }}
+
+- name: Save Effective Grazing Intensity Chart
+  id: effective_intensity_chart_html
   task: persist_text
   partial:
     root_path: ${{ env.ECOSCOPE_WORKFLOWS_RESULTS }}
-    text: ${{ workflow.grouped_line_time_series_chart_2.return }}
-- name: Dataframe To Geodataframe
-  id: to_geodataframe
+    text: ${{ workflow.effective_intensity_chart.return }}
+
+- name: Convert Grazing Metrics to Map Data
+  id: grazing_metrics_gdf
   task: dataframe_to_geodataframe
   partial:
-    df: ${{ workflow.two_dataframes.return }}
+    df: ${{ workflow.grazing_metrics_with_geometry.return }}
     drop_missing: false
     x_column: null
     y_column: null
     geometry_column: geometry
     crs: EPSG:4326
     to_crs: null
-- name: Create Stock Intensity Sparkline View
-  id: plot_sparkline
+
+- name: Stock Intensity Widget
+  id: stock_intensity_widget
   task: create_plot_widget_single_view
   skipif:
     conditions:
     - never
   partial:
     title: Stocking Intensity
-    data: ${{ workflow.stock_intensity_text.return }}
-- name: Create Plot Widget Single View
-  id: plot_widget_single_view_3
+    data: ${{ workflow.stock_intensity_sparkline_html.return }}
+
+- name: Stocking Density Widget
+  id: stocking_density_widget
   task: create_plot_widget_single_view
   skipif:
     conditions:
     - never
   partial:
     title: Stocking Density
-    data: ${{ workflow.text_4.return }}
-- name: Create Plot Widget Single View
-  id: plot_widget_single_view_4
+    data: ${{ workflow.stocking_density_sparkline_html.return }}
+
+- name: Grazing to Rest Ratio Widget
+  id: graze_rest_ratio_widget
   task: create_plot_widget_single_view
   skipif:
     conditions:
     - never
   partial:
     title: Grazing to Rest Ratio
-    data: ${{ workflow.text_3.return }}
-- name: Create Plot Widget Single View
-  id: plot_widget_single_view
+    data: ${{ workflow.graze_rest_ratio_sparkline_html.return }}
+
+- name: Grazing Intensity Widget
+  id: grazing_intensity_widget
   task: create_plot_widget_single_view
   skipif:
     conditions:
     - never
   partial:
     title: Grazing Intensity
-    data: ${{ workflow.text.return }}
-- name: Create Plot Widget Single View
-  id: plot_widget_single_view_5
+    data: ${{ workflow.grazing_intensity_chart_html.return }}
+
+- name: Effective Grazing Intensity Widget
+  id: effective_intensity_widget
   task: create_plot_widget_single_view
   skipif:
     conditions:
     - never
   partial:
     title: Effective Grazing Intensity
-    data: ${{ workflow.text_2.return }}
-- name: Apply Choropleth Colormap
-  id: choropleth_colormap
+    data: ${{ workflow.effective_intensity_chart_html.return }}
+
+- name: Color Blocks by Cattle Count
+  id: cattle_count_colors
   task: apply_choropleth_colormap
   partial:
-    df: ${{ workflow.to_geodataframe.return }}
+    df: ${{ workflow.grazing_metrics_gdf.return }}
     count_column: Cattle count
     colormap_min: 0.15
     colormap_max: 0.995
@@ -404,19 +465,21 @@ workflow:
     fill_color_column: fill_color
     label_column: choropleth_label
     max_classes: 5
-- name: Compute View State From Gdf
-  id: view_state_from_gdf
+
+- name: Zoom Map to Grazing Blocks
+  id: map_view_state
   task: compute_view_state_from_gdf
   partial:
-    gdf: ${{ workflow.choropleth_colormap.return }}
+    gdf: ${{ workflow.cattle_count_colors.return }}
     pitch: 0
     bearing: 0
     max_zoom: 18.0
-- name: Create Geojson Layer
-  id: geojson_layer_2
+
+- name: Grazing Zone Boundaries Layer
+  id: zone_boundaries_layer
   task: create_geojson_layer
   partial:
-    geodataframe: ${{ workflow.color_map.return }}
+    geodataframe: ${{ workflow.zone_boundary_colors.return }}
     layer_style:
       auto_highlight: false
       opacity: 1
@@ -452,11 +515,12 @@ workflow:
     tooltip_columns:
     - feature_type
     data_url: null
-- name: Create Geojson Layer
-  id: geojson_layer
+
+- name: Cattle Count Layer
+  id: cattle_count_layer
   task: create_geojson_layer
   partial:
-    geodataframe: ${{ workflow.choropleth_colormap.return }}
+    geodataframe: ${{ workflow.cattle_count_colors.return }}
     layer_style:
       auto_highlight: false
       opacity: 0.65
@@ -490,102 +554,90 @@ workflow:
       label_suffix: null
     data_url: null
     tooltip_columns: null
-- name: Combine Deckgl Map Layers
-  id: deckgl_map_layers
+
+- name: Combine Map Layers
+  id: map_layers
   task: combine_deckgl_map_layers
   partial:
-    static_layers: ${{ workflow.geojson_layer_2.return }}
-    grouped_layers: ${{ workflow.geojson_layer.return }}
-- name: Merge Widget Views
-  id: widget_views_2
+    static_layers: ${{ workflow.zone_boundaries_layer.return }}
+    grouped_layers: ${{ workflow.cattle_count_layer.return }}
+
+- name: Merge Grazing Intensity Widget
+  id: grazing_intensity_views
   task: merge_widget_views
   partial:
     widgets:
-    - ${{ workflow.plot_widget_single_view.return }}
-- name: Set Base Maps
-  id: base_maps
-  task: set_base_maps
-  partial:
-    base_maps:
-    - url: https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}
-      opacity: 1
-      max_zoom: 20
-      min_zoom: 0
-    - url: https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}
-      opacity: 0.5
-      max_zoom: 20
-      min_zoom: 0
-- name: Draw Map
-  id: map_step
+    - ${{ workflow.grazing_intensity_widget.return }}
+
+- name: Draw Livestock Count Map
+  id: livestock_count_map
   task: draw_map
   partial:
-    geo_layers: ${{ workflow.deckgl_map_layers.return }}
+    geo_layers: ${{ workflow.map_layers.return }}
     tile_layers: ${{ workflow.base_maps.return }}
     legend_style:
       placement: bottom-right
       format_title: true
-    view_state: ${{ workflow.view_state_from_gdf.return }}
+    view_state: ${{ workflow.map_view_state.return }}
     static: false
     output_type: html
     title: ''
     max_zoom: 20
-- name: Merge Widget Views
-  id: widget_views
+
+- name: Merge Effective Grazing Intensity Widget
+  id: effective_intensity_views
   task: merge_widget_views
   partial:
     widgets:
-    - ${{ workflow.plot_widget_single_view_5.return }}
-- name: Merge Widget Views
-  id: widget_views_5
+    - ${{ workflow.effective_intensity_widget.return }}
+
+- name: Merge Stock Intensity Widget
+  id: stock_intensity_views
   task: merge_widget_views
   partial:
     widgets:
-    - ${{ workflow.plot_sparkline.return }}
-- name: Persist Text
-  id: text_5
+    - ${{ workflow.stock_intensity_widget.return }}
+
+- name: Save Livestock Count Map
+  id: livestock_count_map_html
   task: persist_text
   partial:
     root_path: ${{ env.ECOSCOPE_WORKFLOWS_RESULTS }}
-    text: ${{ workflow.map_step.return }}
-- name: Merge Widget Views
-  id: widget_views_4
+    text: ${{ workflow.livestock_count_map.return }}
+
+- name: Merge Stocking Density Widget
+  id: stocking_density_views
   task: merge_widget_views
   partial:
     widgets:
-    - ${{ workflow.plot_widget_single_view_3.return }}
-- name: Create Map Widget Single View
-  id: map_widget_single_view
+    - ${{ workflow.stocking_density_widget.return }}
+
+- name: Livestock Count Map Widget
+  id: livestock_count_map_widget
   task: create_map_widget_single_view
   skipif:
     conditions:
     - never
   partial:
-    data: ${{ workflow.text_5.return }}
+    data: ${{ workflow.livestock_count_map_html.return }}
     title: Livestock Count
-- name: Merge Widget Views
-  id: widget_views_3
+
+- name: Merge Grazing to Rest Ratio Widget
+  id: graze_rest_ratio_views
   task: merge_widget_views
   partial:
     widgets:
-    - ${{ workflow.plot_widget_single_view_4.return }}
-- name: Set Workflow Details
-  id: workflow_details
-  task: set_workflow_details
-  partial:
-    description: ''
-- name: Merge Widget Views
-  id: widget_views_6
+    - ${{ workflow.graze_rest_ratio_widget.return }}
+
+- name: Merge Livestock Count Map Widget
+  id: livestock_count_map_views
   task: merge_widget_views
   partial:
     widgets:
-    - ${{ workflow.map_widget_single_view.return }}
-- name: Set Groupers
-  id: groupers
-  task: set_groupers
-  partial:
-    groupers: null
-- name: Persist Df
-  id: df
+    - ${{ workflow.livestock_count_map_widget.return }}
+
+- name: Save Grazing Metrics CSV
+  id: grazing_metrics_csv
   task: persist_df
   partial:
     root_path: ${{ env.ECOSCOPE_WORKFLOWS_RESULTS }}
@@ -597,32 +649,13 @@ workflow:
   task: gather_dashboard
   partial:
     details: ${{ workflow.workflow_details.return }}
-    groupers: ${{ workflow.groupers.return }}
+    groupers: ${{ workflow.dashboard_groupers.return }}
     time_range: ${{ workflow.time_range.return }}
     widgets:
-    - ${{ workflow.widget_views_5.return }}
-    - ${{ workflow.widget_views_4.return }}
-    - ${{ workflow.widget_views_3.return }}
-    - ${{ workflow.widget_views_2.return }}
-    - ${{ workflow.widget_views.return }}
-    - ${{ workflow.widget_views_6.return }}
-rjsf-overrides:
-  uiSchema:
-    ui:order:
-    - workflow_details
-    - time_range
-    - er_connection
-    - livestock_movement_events
-    - cattle_count_events
-    - features_by_type
-  properties:
-    livestock_movement_events.properties.event_types.ecoscope:transform:
-    - transformer: EarthRangerEnumResolver
-      transformer_kws:
-        type: event_type
-        depends_on: properties.er_connection.properties.data_source.properties.name
-    cattle_count_events.properties.event_types.ecoscope:transform:
-    - transformer: EarthRangerEnumResolver
-      transformer_kws:
-        type: event_type
-        depends_on: properties.er_connection.properties.data_source.properties.name
+    - ${{ workflow.stock_intensity_views.return }}
+    - ${{ workflow.stocking_density_views.return }}
+    - ${{ workflow.graze_rest_ratio_views.return }}
+    - ${{ workflow.grazing_intensity_views.return }}
+    - ${{ workflow.effective_intensity_views.return }}
+    - ${{ workflow.livestock_count_map_views.return }}
+

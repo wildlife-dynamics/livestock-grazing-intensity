@@ -10,7 +10,9 @@ import os
 import warnings  # 🧪
 from typing import Any
 
+from ecoscope.platform.tasks.config import set_workflow_details as set_workflow_details
 from ecoscope.platform.tasks.filter import set_time_range as set_time_range
+from ecoscope.platform.tasks.groupby import set_groupers as set_groupers
 from ecoscope.platform.tasks.io import set_er_connection as set_er_connection
 from ecoscope.platform.tasks.skip import (
     any_dependency_skipped as any_dependency_skipped,
@@ -26,13 +28,6 @@ get_events = create_func_magicmock(  # 🧪
     anchor="ecoscope.platform.tasks.io",  # 🧪
     func_name="get_events",  # 🧪
 )  # 🧪
-
-get_events = create_func_magicmock(  # 🧪
-    anchor="ecoscope.platform.tasks.io",  # 🧪
-    func_name="get_events",  # 🧪
-)  # 🧪
-from ecoscope.platform.tasks.config import set_workflow_details as set_workflow_details
-from ecoscope.platform.tasks.groupby import set_groupers as set_groupers
 from ecoscope.platform.tasks.io import persist_df as persist_df
 from ecoscope.platform.tasks.io import persist_text as persist_text
 from ecoscope.platform.tasks.results import create_geojson_layer as create_geojson_layer
@@ -59,10 +54,16 @@ from ecoscope.platform.tasks.transformation import (
     normalize_json_column as normalize_json_column,
 )
 from ecoscope_workflows_ext_custom.tasks.transformation import (
+    filter_row_values as filter_row_values,
+)
+from ecoscope_workflows_ext_custom.tasks.transformation import (
     merge_two_dataframes as merge_two_dataframes,
 )
 from ecoscope_workflows_ext_distance_sample_counts.tasks.transformation import (
     add_area_columns as add_area_columns,
+)
+from ecoscope_workflows_ext_distance_sample_counts.tasks.transformation import (
+    build_grazing_metrics as build_grazing_metrics,
 )
 from ecoscope_workflows_ext_distance_sample_counts.tasks.transformation import (
     dataframe_to_geodataframe as dataframe_to_geodataframe,
@@ -72,9 +73,6 @@ from ecoscope_workflows_ext_distance_sample_counts.tasks.transformation import (
 )
 from ecoscope_workflows_ext_distance_sample_counts.tasks.transformation import (
     merge_block_movements as merge_block_movements,
-)
-from ecoscope_workflows_ext_distance_sample_counts.tasks.transformation._block_movements import (
-    build_grazing_metrics as build_grazing_metrics,
 )
 from ecoscope_workflows_ext_eden.tasks import (
     apply_choropleth_colormap as apply_choropleth_colormap,
@@ -94,9 +92,6 @@ from ecoscope_workflows_ext_wwf_virunga.tasks.plot import (
 from ecoscope_workflows_ext_wwf_virunga.tasks.results import (
     draw_stat_sparkline as draw_stat_sparkline,
 )
-from ecoscope_workflows_ext_wwf_virunga.tasks.transformation import (
-    map_column_value as map_column_value,
-)
 
 
 def main(params: dict[str, Any], validate_params_schema: bool = True):
@@ -104,6 +99,23 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
 
     if validate_params_schema:
         _validate(params, _metadata.load_params_schema())
+
+    workflow_details = (
+        task(set_workflow_details)
+        .validate()
+        .set_task_instance_id("workflow_details")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(description="", **(params.get("workflow_details") or {}))
+        .call()
+    )
 
     er_connection = (
         task(set_er_connection)
@@ -139,10 +151,27 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         .call()
     )
 
-    livestock_movement_events = (
+    dashboard_groupers = (
+        task(set_groupers)
+        .validate()
+        .set_task_instance_id("dashboard_groupers")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(groupers=None, **(params.get("dashboard_groupers") or {}))
+        .call()
+    )
+
+    events = (
         task(get_events)
         # 🧪 validation omitted for mocked IO task (returns pre-loaded example data)
-        .set_task_instance_id("livestock_movement_events")
+        .set_task_instance_id("events")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -176,15 +205,15 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             include_related_events=False,
             include_display_values=True,
             force_point_geometry=True,
-            **(params.get("livestock_movement_events") or {}),
+            **(params.get("events") or {}),
         )
         .call()
     )
 
-    cattle_count_events = (
-        task(get_events)
-        # 🧪 validation omitted for mocked IO task (returns pre-loaded example data)
-        .set_task_instance_id("cattle_count_events")
+    base_maps = (
+        task(set_base_maps)
+        .validate()
+        .set_task_instance_id("base_maps")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -194,39 +223,14 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             ],
             unpack_depth=1,
         )
-        .partial(
-            client=er_connection,
-            time_range=time_range,
-            include_details=True,
-            event_columns=[
-                "id",
-                "time",
-                "event_type",
-                "event_category",
-                "title",
-                "reported_by",
-                "created_at",
-                "serial_number",
-                "is_collection",
-                "event_details",
-                "geometry",
-            ],
-            event_states=None,
-            include_null_geometry=True,
-            raise_on_empty=False,
-            include_updates=False,
-            include_related_events=False,
-            include_display_values=True,
-            force_point_geometry=True,
-            **(params.get("cattle_count_events") or {}),
-        )
+        .partial(**(params.get("base_maps") or {}))
         .call()
     )
 
-    extract_cattle_count_date = (
+    livestock_movement_dated = (
         task(extract_column_as_type)
         .validate()
-        .set_task_instance_id("extract_cattle_count_date")
+        .set_task_instance_id("livestock_movement_dated")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -237,36 +241,56 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            df=cattle_count_events,
-            column_name="time",
-            output_type="date",
-            output_column_name="time",
-            fan_out=True,
-            **(params.get("extract_cattle_count_date") or {}),
-        )
-        .call()
-    )
-
-    extract_livestock_date = (
-        task(extract_column_as_type)
-        .validate()
-        .set_task_instance_id("extract_livestock_date")
-        .handle_errors()
-        .with_tracing()
-        .skipif(
-            conditions=[
-                any_is_empty_df,
-                any_dependency_skipped,
-            ],
-            unpack_depth=1,
-        )
-        .partial(
-            df=livestock_movement_events,
+            df=events,
             column_name="time",
             output_type="date",
             output_column_name="date",
             fan_out=True,
-            **(params.get("extract_livestock_date") or {}),
+            **(params.get("livestock_movement_dated") or {}),
+        )
+        .call()
+    )
+
+    filter_livestock_events = (
+        task(filter_row_values)
+        .validate()
+        .set_task_instance_id("filter_livestock_events")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            df=livestock_movement_dated,
+            column="event_type",
+            values=["livestock_block_movement"],
+            **(params.get("filter_livestock_events") or {}),
+        )
+        .call()
+    )
+
+    filter_cattle_count_events = (
+        task(filter_row_values)
+        .validate()
+        .set_task_instance_id("filter_cattle_count_events")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            df=livestock_movement_dated,
+            column="event_type",
+            values=["cattle_count"],
+            **(params.get("filter_cattle_count_events") or {}),
         )
         .call()
     )
@@ -292,27 +316,10 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         .call()
     )
 
-    utm_crs = (
+    grazing_block_utm_crs = (
         task(estimate_utm_crs)
         .validate()
-        .set_task_instance_id("utm_crs")
-        .handle_errors()
-        .with_tracing()
-        .skipif(
-            conditions=[
-                any_is_empty_df,
-                any_dependency_skipped,
-            ],
-            unpack_depth=1,
-        )
-        .partial(geodataframe=features_by_type, **(params.get("utm_crs") or {}))
-        .call()
-    )
-
-    livestock_json_column = (
-        task(normalize_json_column)
-        .validate()
-        .set_task_instance_id("livestock_json_column")
+        .set_task_instance_id("grazing_block_utm_crs")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -323,19 +330,38 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            df=extract_livestock_date,
+            geodataframe=features_by_type, **(params.get("grazing_block_utm_crs") or {})
+        )
+        .call()
+    )
+
+    livestock_movement_details = (
+        task(normalize_json_column)
+        .validate()
+        .set_task_instance_id("livestock_movement_details")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            df=livestock_movement_dated,
             column="event_details",
             skip_if_not_exists=True,
             sort_columns=True,
-            **(params.get("livestock_json_column") or {}),
+            **(params.get("livestock_movement_details") or {}),
         )
         .call()
     )
 
-    cattle_json_column = (
+    cattle_count_details = (
         task(normalize_json_column)
         .validate()
-        .set_task_instance_id("cattle_json_column")
+        .set_task_instance_id("cattle_count_details")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -346,19 +372,19 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            df=extract_cattle_count_date,
+            df=filter_cattle_count_events,
             column="event_details",
             skip_if_not_exists=True,
             sort_columns=True,
-            **(params.get("cattle_json_column") or {}),
+            **(params.get("cattle_count_details") or {}),
         )
         .call()
     )
 
-    livestock_column_prefix = (
+    livestock_movement_cleaned = (
         task(drop_column_prefix)
         .validate()
-        .set_task_instance_id("livestock_column_prefix")
+        .set_task_instance_id("livestock_movement_cleaned")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -369,18 +395,18 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            df=livestock_json_column,
+            df=livestock_movement_details,
             prefix="event_details__",
             duplicate_strategy="suffix",
-            **(params.get("livestock_column_prefix") or {}),
+            **(params.get("livestock_movement_cleaned") or {}),
         )
         .call()
     )
 
-    cattle_column_prefix = (
+    cattle_count_cleaned = (
         task(drop_column_prefix)
         .validate()
-        .set_task_instance_id("cattle_column_prefix")
+        .set_task_instance_id("cattle_count_cleaned")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -391,18 +417,18 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            df=cattle_json_column,
+            df=cattle_count_details,
             prefix="event_details__",
             duplicate_strategy="suffix",
-            **(params.get("cattle_column_prefix") or {}),
+            **(params.get("cattle_count_cleaned") or {}),
         )
         .call()
     )
 
-    area_columns = (
+    grazing_block_areas = (
         task(add_area_columns)
         .validate()
-        .set_task_instance_id("area_columns")
+        .set_task_instance_id("grazing_block_areas")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -413,20 +439,20 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            crs=utm_crs,
+            crs=grazing_block_utm_crs,
             gdf=features_by_type,
             decimals=2,
             units=["ha"],
             prefix="area",
-            **(params.get("area_columns") or {}),
+            **(params.get("grazing_block_areas") or {}),
         )
         .call()
     )
 
-    columns = (
+    cattle_count_renamed = (
         task(map_columns)
         .validate()
-        .set_task_instance_id("columns")
+        .set_task_instance_id("cattle_count_renamed")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -437,21 +463,21 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            df=cattle_column_prefix,
+            df=cattle_count_cleaned,
             rename_columns={"communityzone": "Community/Zone", "count": "Count"},
             drop_columns=[],
             retain_columns=[],
             raise_if_not_found=True,
             duplicate_strategy="suffix",
-            **(params.get("columns") or {}),
+            **(params.get("cattle_count_renamed") or {}),
         )
         .call()
     )
 
-    block_movements = (
+    livestock_block_movements = (
         task(merge_block_movements)
         .validate()
-        .set_task_instance_id("block_movements")
+        .set_task_instance_id("livestock_block_movements")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -462,48 +488,16 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            events_df=livestock_column_prefix, **(params.get("block_movements") or {})
+            events_df=livestock_movement_cleaned,
+            **(params.get("livestock_block_movements") or {}),
         )
         .call()
     )
 
-    column_value = (
-        task(map_column_value)
-        .validate()
-        .set_task_instance_id("column_value")
-        .handle_errors()
-        .with_tracing()
-        .skipif(
-            conditions=[
-                any_is_empty_df,
-                any_dependency_skipped,
-            ],
-            unpack_depth=1,
-        )
-        .partial(
-            df=area_columns,
-            col="name",
-            mapping={
-                "ESILALE ZONE": "esilaleii",
-                "IRBAAN ZONE": "irbaan",
-                "NKOILALE ZONE": "nkoilale",
-                "OLESERE ZONE": "olesere",
-                "OLKURROTO ZONE": "olkurroto",
-                "OLOISUTI ZONE": "oloisuti",
-                "PAYIA ZONE": "payia",
-            },
-            new_col="Grazing Zone",
-            default=None,
-            keep_unmapped=True,
-            **(params.get("column_value") or {}),
-        )
-        .call()
-    )
-
-    color_map = (
+    zone_boundary_colors = (
         task(apply_color_map)
         .validate()
-        .set_task_instance_id("color_map")
+        .set_task_instance_id("zone_boundary_colors")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -514,19 +508,19 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            df=column_value,
+            df=grazing_block_areas,
             input_column_name="feature_type",
             colormap="BrBG",
             output_column_name="grazing_zone_colors",
-            **(params.get("color_map") or {}),
+            **(params.get("zone_boundary_colors") or {}),
         )
         .call()
     )
 
-    columns_2 = (
+    grazing_block_geometry = (
         task(map_columns)
         .validate()
-        .set_task_instance_id("columns_2")
+        .set_task_instance_id("grazing_block_geometry")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -537,13 +531,13 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            df=column_value,
-            retain_columns=["id", "Grazing Zone", "geometry"],
+            df=grazing_block_areas,
+            retain_columns=["id", "name", "geometry"],
             drop_columns=[],
             rename_columns={},
             raise_if_not_found=True,
             duplicate_strategy="suffix",
-            **(params.get("columns_2") or {}),
+            **(params.get("grazing_block_geometry") or {}),
         )
         .call()
     )
@@ -562,18 +556,18 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            events_df=block_movements,
-            cattle_df=columns,
-            block_areas_ha=area_columns,
+            events_df=livestock_block_movements,
+            cattle_df=cattle_count_renamed,
+            block_areas_ha=grazing_block_areas,
             **(params.get("grazing_metrics") or {}),
         )
         .call()
     )
 
-    grouped_line_time_series_chart = (
+    grazing_intensity_chart = (
         task(draw_grouped_line_time_series_chart)
         .validate()
-        .set_task_instance_id("grouped_line_time_series_chart")
+        .set_task_instance_id("grazing_intensity_chart")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -599,15 +593,15 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             layout_style=None,
             tick_frequency=None,
             widget_id=None,
-            **(params.get("grouped_line_time_series_chart") or {}),
+            **(params.get("grazing_intensity_chart") or {}),
         )
         .call()
     )
 
-    grouped_line_time_series_chart_2 = (
+    effective_intensity_chart = (
         task(draw_grouped_line_time_series_chart)
         .validate()
-        .set_task_instance_id("grouped_line_time_series_chart_2")
+        .set_task_instance_id("effective_intensity_chart")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -633,7 +627,7 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             layout_style=None,
             tick_frequency=None,
             widget_id=None,
-            **(params.get("grouped_line_time_series_chart_2") or {}),
+            **(params.get("effective_intensity_chart") or {}),
         )
         .call()
     )
@@ -668,10 +662,10 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         .call()
     )
 
-    stock_density_sparkline = (
+    stocking_density_sparkline = (
         task(draw_stat_sparkline)
         .validate()
-        .set_task_instance_id("stock_density_sparkline")
+        .set_task_instance_id("stocking_density_sparkline")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -688,20 +682,20 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             time_column="Date in",
             time_frequency="Month",
             as_percent=False,
-            decimal_places=0,
+            decimal_places=2,
             caption_column=None,
             caption_agg_function=None,
             caption_template="{value:,.0f}",
             line_color="#2f6b9a",
-            **(params.get("stock_density_sparkline") or {}),
+            **(params.get("stocking_density_sparkline") or {}),
         )
         .call()
     )
 
-    stat_sparkline = (
+    graze_rest_ratio_sparkline = (
         task(draw_stat_sparkline)
         .validate()
-        .set_task_instance_id("stat_sparkline")
+        .set_task_instance_id("graze_rest_ratio_sparkline")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -718,20 +712,20 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             time_column="Date in",
             time_frequency="Month",
             as_percent=False,
-            decimal_places=0,
+            decimal_places=2,
             caption_column=None,
             caption_agg_function=None,
             caption_template="{value:,.0f}",
             line_color="#2f6b9a",
-            **(params.get("stat_sparkline") or {}),
+            **(params.get("graze_rest_ratio_sparkline") or {}),
         )
         .call()
     )
 
-    two_dataframes = (
+    grazing_metrics_with_geometry = (
         task(merge_two_dataframes)
         .validate()
-        .set_task_instance_id("two_dataframes")
+        .set_task_instance_id("grazing_metrics_with_geometry")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -742,24 +736,24 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            right=columns_2,
+            right=grazing_block_geometry,
             left=grazing_metrics,
             how="left",
             on=None,
-            left_on=None,
-            right_on=None,
+            left_on="Grazing Zone",
+            right_on="name",
             left_index=False,
             right_index=False,
             fillna_value=None,
-            **(params.get("two_dataframes") or {}),
+            **(params.get("grazing_metrics_with_geometry") or {}),
         )
         .call()
     )
 
-    stock_intensity_text = (
+    stock_intensity_sparkline_html = (
         task(persist_text)
         .validate()
-        .set_task_instance_id("stock_intensity_text")
+        .set_task_instance_id("stock_intensity_sparkline_html")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -772,15 +766,15 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         .partial(
             root_path=os.environ["ECOSCOPE_WORKFLOWS_RESULTS"],
             text=stock_intensity_sparkline,
-            **(params.get("stock_intensity_text") or {}),
+            **(params.get("stock_intensity_sparkline_html") or {}),
         )
         .call()
     )
 
-    text_4 = (
+    stocking_density_sparkline_html = (
         task(persist_text)
         .validate()
-        .set_task_instance_id("text_4")
+        .set_task_instance_id("stocking_density_sparkline_html")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -792,16 +786,16 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         )
         .partial(
             root_path=os.environ["ECOSCOPE_WORKFLOWS_RESULTS"],
-            text=stock_density_sparkline,
-            **(params.get("text_4") or {}),
+            text=stocking_density_sparkline,
+            **(params.get("stocking_density_sparkline_html") or {}),
         )
         .call()
     )
 
-    text_3 = (
+    graze_rest_ratio_sparkline_html = (
         task(persist_text)
         .validate()
-        .set_task_instance_id("text_3")
+        .set_task_instance_id("graze_rest_ratio_sparkline_html")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -813,16 +807,16 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         )
         .partial(
             root_path=os.environ["ECOSCOPE_WORKFLOWS_RESULTS"],
-            text=stat_sparkline,
-            **(params.get("text_3") or {}),
+            text=graze_rest_ratio_sparkline,
+            **(params.get("graze_rest_ratio_sparkline_html") or {}),
         )
         .call()
     )
 
-    text = (
+    grazing_intensity_chart_html = (
         task(persist_text)
         .validate()
-        .set_task_instance_id("text")
+        .set_task_instance_id("grazing_intensity_chart_html")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -834,16 +828,16 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         )
         .partial(
             root_path=os.environ["ECOSCOPE_WORKFLOWS_RESULTS"],
-            text=grouped_line_time_series_chart,
-            **(params.get("text") or {}),
+            text=grazing_intensity_chart,
+            **(params.get("grazing_intensity_chart_html") or {}),
         )
         .call()
     )
 
-    text_2 = (
+    effective_intensity_chart_html = (
         task(persist_text)
         .validate()
-        .set_task_instance_id("text_2")
+        .set_task_instance_id("effective_intensity_chart_html")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -855,16 +849,16 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         )
         .partial(
             root_path=os.environ["ECOSCOPE_WORKFLOWS_RESULTS"],
-            text=grouped_line_time_series_chart_2,
-            **(params.get("text_2") or {}),
+            text=effective_intensity_chart,
+            **(params.get("effective_intensity_chart_html") or {}),
         )
         .call()
     )
 
-    to_geodataframe = (
+    grazing_metrics_gdf = (
         task(dataframe_to_geodataframe)
         .validate()
-        .set_task_instance_id("to_geodataframe")
+        .set_task_instance_id("grazing_metrics_gdf")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -875,22 +869,22 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            df=two_dataframes,
+            df=grazing_metrics_with_geometry,
             drop_missing=False,
             x_column=None,
             y_column=None,
             geometry_column="geometry",
             crs="EPSG:4326",
             to_crs=None,
-            **(params.get("to_geodataframe") or {}),
+            **(params.get("grazing_metrics_gdf") or {}),
         )
         .call()
     )
 
-    plot_sparkline = (
+    stock_intensity_widget = (
         task(create_plot_widget_single_view)
         .validate()
-        .set_task_instance_id("plot_sparkline")
+        .set_task_instance_id("stock_intensity_widget")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -901,16 +895,16 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         )
         .partial(
             title="Stocking Intensity",
-            data=stock_intensity_text,
-            **(params.get("plot_sparkline") or {}),
+            data=stock_intensity_sparkline_html,
+            **(params.get("stock_intensity_widget") or {}),
         )
         .call()
     )
 
-    plot_widget_single_view_3 = (
+    stocking_density_widget = (
         task(create_plot_widget_single_view)
         .validate()
-        .set_task_instance_id("plot_widget_single_view_3")
+        .set_task_instance_id("stocking_density_widget")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -921,16 +915,16 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         )
         .partial(
             title="Stocking Density",
-            data=text_4,
-            **(params.get("plot_widget_single_view_3") or {}),
+            data=stocking_density_sparkline_html,
+            **(params.get("stocking_density_widget") or {}),
         )
         .call()
     )
 
-    plot_widget_single_view_4 = (
+    graze_rest_ratio_widget = (
         task(create_plot_widget_single_view)
         .validate()
-        .set_task_instance_id("plot_widget_single_view_4")
+        .set_task_instance_id("graze_rest_ratio_widget")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -941,16 +935,16 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         )
         .partial(
             title="Grazing to Rest Ratio",
-            data=text_3,
-            **(params.get("plot_widget_single_view_4") or {}),
+            data=graze_rest_ratio_sparkline_html,
+            **(params.get("graze_rest_ratio_widget") or {}),
         )
         .call()
     )
 
-    plot_widget_single_view = (
+    grazing_intensity_widget = (
         task(create_plot_widget_single_view)
         .validate()
-        .set_task_instance_id("plot_widget_single_view")
+        .set_task_instance_id("grazing_intensity_widget")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -961,16 +955,16 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         )
         .partial(
             title="Grazing Intensity",
-            data=text,
-            **(params.get("plot_widget_single_view") or {}),
+            data=grazing_intensity_chart_html,
+            **(params.get("grazing_intensity_widget") or {}),
         )
         .call()
     )
 
-    plot_widget_single_view_5 = (
+    effective_intensity_widget = (
         task(create_plot_widget_single_view)
         .validate()
-        .set_task_instance_id("plot_widget_single_view_5")
+        .set_task_instance_id("effective_intensity_widget")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -981,16 +975,16 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         )
         .partial(
             title="Effective Grazing Intensity",
-            data=text_2,
-            **(params.get("plot_widget_single_view_5") or {}),
+            data=effective_intensity_chart_html,
+            **(params.get("effective_intensity_widget") or {}),
         )
         .call()
     )
 
-    choropleth_colormap = (
+    cattle_count_colors = (
         task(apply_choropleth_colormap)
         .validate()
-        .set_task_instance_id("choropleth_colormap")
+        .set_task_instance_id("cattle_count_colors")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -1001,7 +995,7 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            df=to_geodataframe,
+            df=grazing_metrics_gdf,
             count_column="Cattle count",
             colormap_min=0.15,
             colormap_max=0.995,
@@ -1009,15 +1003,15 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             fill_color_column="fill_color",
             label_column="choropleth_label",
             max_classes=5,
-            **(params.get("choropleth_colormap") or {}),
+            **(params.get("cattle_count_colors") or {}),
         )
         .call()
     )
 
-    view_state_from_gdf = (
+    map_view_state = (
         task(compute_view_state_from_gdf)
         .validate()
-        .set_task_instance_id("view_state_from_gdf")
+        .set_task_instance_id("map_view_state")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -1028,19 +1022,19 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            gdf=choropleth_colormap,
+            gdf=cattle_count_colors,
             pitch=0,
             bearing=0,
             max_zoom=18.0,
-            **(params.get("view_state_from_gdf") or {}),
+            **(params.get("map_view_state") or {}),
         )
         .call()
     )
 
-    geojson_layer_2 = (
+    zone_boundaries_layer = (
         task(create_geojson_layer)
         .validate()
-        .set_task_instance_id("geojson_layer_2")
+        .set_task_instance_id("zone_boundaries_layer")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -1051,7 +1045,7 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            geodataframe=color_map,
+            geodataframe=zone_boundary_colors,
             layer_style={
                 "auto_highlight": False,
                 "opacity": 1,
@@ -1086,15 +1080,15 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             },
             tooltip_columns=["feature_type"],
             data_url=None,
-            **(params.get("geojson_layer_2") or {}),
+            **(params.get("zone_boundaries_layer") or {}),
         )
         .call()
     )
 
-    geojson_layer = (
+    cattle_count_layer = (
         task(create_geojson_layer)
         .validate()
-        .set_task_instance_id("geojson_layer")
+        .set_task_instance_id("cattle_count_layer")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -1105,7 +1099,7 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            geodataframe=choropleth_colormap,
+            geodataframe=cattle_count_colors,
             layer_style={
                 "auto_highlight": False,
                 "opacity": 0.65,
@@ -1141,15 +1135,15 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             },
             data_url=None,
             tooltip_columns=None,
-            **(params.get("geojson_layer") or {}),
+            **(params.get("cattle_count_layer") or {}),
         )
         .call()
     )
 
-    deckgl_map_layers = (
+    map_layers = (
         task(combine_deckgl_map_layers)
         .validate()
-        .set_task_instance_id("deckgl_map_layers")
+        .set_task_instance_id("map_layers")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -1160,17 +1154,17 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            static_layers=geojson_layer_2,
-            grouped_layers=geojson_layer,
-            **(params.get("deckgl_map_layers") or {}),
+            static_layers=zone_boundaries_layer,
+            grouped_layers=cattle_count_layer,
+            **(params.get("map_layers") or {}),
         )
         .call()
     )
 
-    widget_views_2 = (
+    grazing_intensity_views = (
         task(merge_widget_views)
         .validate()
-        .set_task_instance_id("widget_views_2")
+        .set_task_instance_id("grazing_intensity_views")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -1181,48 +1175,16 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            widgets=[plot_widget_single_view], **(params.get("widget_views_2") or {})
+            widgets=[grazing_intensity_widget],
+            **(params.get("grazing_intensity_views") or {}),
         )
         .call()
     )
 
-    base_maps = (
-        task(set_base_maps)
-        .validate()
-        .set_task_instance_id("base_maps")
-        .handle_errors()
-        .with_tracing()
-        .skipif(
-            conditions=[
-                any_is_empty_df,
-                any_dependency_skipped,
-            ],
-            unpack_depth=1,
-        )
-        .partial(
-            base_maps=[
-                {
-                    "url": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
-                    "opacity": 1,
-                    "max_zoom": 20,
-                    "min_zoom": 0,
-                },
-                {
-                    "url": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-                    "opacity": 0.5,
-                    "max_zoom": 20,
-                    "min_zoom": 0,
-                },
-            ],
-            **(params.get("base_maps") or {}),
-        )
-        .call()
-    )
-
-    map_step = (
+    livestock_count_map = (
         task(draw_map)
         .validate()
-        .set_task_instance_id("map_step")
+        .set_task_instance_id("livestock_count_map")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -1233,23 +1195,23 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            geo_layers=deckgl_map_layers,
+            geo_layers=map_layers,
             tile_layers=base_maps,
             legend_style={"placement": "bottom-right", "format_title": True},
-            view_state=view_state_from_gdf,
+            view_state=map_view_state,
             static=False,
             output_type="html",
             title="",
             max_zoom=20,
-            **(params.get("map_step") or {}),
+            **(params.get("livestock_count_map") or {}),
         )
         .call()
     )
 
-    widget_views = (
+    effective_intensity_views = (
         task(merge_widget_views)
         .validate()
-        .set_task_instance_id("widget_views")
+        .set_task_instance_id("effective_intensity_views")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -1260,15 +1222,16 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            widgets=[plot_widget_single_view_5], **(params.get("widget_views") or {})
+            widgets=[effective_intensity_widget],
+            **(params.get("effective_intensity_views") or {}),
         )
         .call()
     )
 
-    widget_views_5 = (
+    stock_intensity_views = (
         task(merge_widget_views)
         .validate()
-        .set_task_instance_id("widget_views_5")
+        .set_task_instance_id("stock_intensity_views")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -1278,14 +1241,17 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             ],
             unpack_depth=1,
         )
-        .partial(widgets=[plot_sparkline], **(params.get("widget_views_5") or {}))
+        .partial(
+            widgets=[stock_intensity_widget],
+            **(params.get("stock_intensity_views") or {}),
+        )
         .call()
     )
 
-    text_5 = (
+    livestock_count_map_html = (
         task(persist_text)
         .validate()
-        .set_task_instance_id("text_5")
+        .set_task_instance_id("livestock_count_map_html")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -1297,16 +1263,16 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         )
         .partial(
             root_path=os.environ["ECOSCOPE_WORKFLOWS_RESULTS"],
-            text=map_step,
-            **(params.get("text_5") or {}),
+            text=livestock_count_map,
+            **(params.get("livestock_count_map_html") or {}),
         )
         .call()
     )
 
-    widget_views_4 = (
+    stocking_density_views = (
         task(merge_widget_views)
         .validate()
-        .set_task_instance_id("widget_views_4")
+        .set_task_instance_id("stocking_density_views")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -1317,15 +1283,16 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            widgets=[plot_widget_single_view_3], **(params.get("widget_views_4") or {})
+            widgets=[stocking_density_widget],
+            **(params.get("stocking_density_views") or {}),
         )
         .call()
     )
 
-    map_widget_single_view = (
+    livestock_count_map_widget = (
         task(create_map_widget_single_view)
         .validate()
-        .set_task_instance_id("map_widget_single_view")
+        .set_task_instance_id("livestock_count_map_widget")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -1335,17 +1302,17 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            data=text_5,
+            data=livestock_count_map_html,
             title="Livestock Count",
-            **(params.get("map_widget_single_view") or {}),
+            **(params.get("livestock_count_map_widget") or {}),
         )
         .call()
     )
 
-    widget_views_3 = (
+    graze_rest_ratio_views = (
         task(merge_widget_views)
         .validate()
-        .set_task_instance_id("widget_views_3")
+        .set_task_instance_id("graze_rest_ratio_views")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -1356,32 +1323,16 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            widgets=[plot_widget_single_view_4], **(params.get("widget_views_3") or {})
+            widgets=[graze_rest_ratio_widget],
+            **(params.get("graze_rest_ratio_views") or {}),
         )
         .call()
     )
 
-    workflow_details = (
-        task(set_workflow_details)
-        .validate()
-        .set_task_instance_id("workflow_details")
-        .handle_errors()
-        .with_tracing()
-        .skipif(
-            conditions=[
-                any_is_empty_df,
-                any_dependency_skipped,
-            ],
-            unpack_depth=1,
-        )
-        .partial(description="", **(params.get("workflow_details") or {}))
-        .call()
-    )
-
-    widget_views_6 = (
+    livestock_count_map_views = (
         task(merge_widget_views)
         .validate()
-        .set_task_instance_id("widget_views_6")
+        .set_task_instance_id("livestock_count_map_views")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -1392,32 +1343,16 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            widgets=[map_widget_single_view], **(params.get("widget_views_6") or {})
+            widgets=[livestock_count_map_widget],
+            **(params.get("livestock_count_map_views") or {}),
         )
         .call()
     )
 
-    groupers = (
-        task(set_groupers)
-        .validate()
-        .set_task_instance_id("groupers")
-        .handle_errors()
-        .with_tracing()
-        .skipif(
-            conditions=[
-                any_is_empty_df,
-                any_dependency_skipped,
-            ],
-            unpack_depth=1,
-        )
-        .partial(groupers=None, **(params.get("groupers") or {}))
-        .call()
-    )
-
-    df = (
+    grazing_metrics_csv = (
         task(persist_df)
         .validate()
-        .set_task_instance_id("df")
+        .set_task_instance_id("grazing_metrics_csv")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -1432,7 +1367,7 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             df=grazing_metrics,
             filename=None,
             filetype="csv",
-            **(params.get("df") or {}),
+            **(params.get("grazing_metrics_csv") or {}),
         )
         .call()
     )
@@ -1452,15 +1387,15 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         )
         .partial(
             details=workflow_details,
-            groupers=groupers,
+            groupers=dashboard_groupers,
             time_range=time_range,
             widgets=[
-                widget_views_5,
-                widget_views_4,
-                widget_views_3,
-                widget_views_2,
-                widget_views,
-                widget_views_6,
+                stock_intensity_views,
+                stocking_density_views,
+                graze_rest_ratio_views,
+                grazing_intensity_views,
+                effective_intensity_views,
+                livestock_count_map_views,
             ],
             **(params.get("dashboard") or {}),
         )

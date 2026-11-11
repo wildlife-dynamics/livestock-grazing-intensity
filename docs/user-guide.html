@@ -21,49 +21,76 @@
 
   <main>
     <h1>User Guide</h1>
-    <p class="lede">How to load livestock-grazing-intensity, connect its data sources and fill in its settings.</p>
+    <p class="lede">How to load livestock-grazing-intensity, what data it needs, how to fill in its settings, and how to read the results.</p>
 
     <h2>1. Load the workflow</h2>
     <p>In the workflow runner, add a new template using this repository's URL, then select <strong>livestock-grazing-intensity</strong> from the templates list.</p>
 
-    <h2>2. Data sources</h2>
-    <ul><li>Access to a <strong>EarthRanger</strong> data source, set up as a connection</li></ul>
+    <h2 id="data">2. The data it needs</h2>
+    <p>An <strong>EarthRanger</strong> data source, set up as a connection, with these three things:</p>
+    <table>
+      <thead><tr><th>Data</th><th>What it must contain</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Livestock movement events</strong></td><td>One event each time a herd moves. The event details need a <code>communityzone</code> field and the blocks moved from and to. Fields named <code>from</code>, <code>*_from</code>, <code>to</code>, <code>to_block</code> or <code>*_to</code> are all merged, and each can hold one block name or a list of names.</td></tr>
+        <tr><td><strong>Cattle count events</strong></td><td>A count of the cattle in a zone. The event details need <code>communityzone</code> and <code>count</code> fields. The run stops if either is missing.</td></tr>
+        <tr><td><strong>Grazing block features</strong></td><td>One polygon feature per grazing block. Feature names must match the block names used in the movement events. Capitals and spaces are ignored, so “Block A” matches “block a”. For the map, also include one polygon per grazing zone, named exactly like its <code>communityzone</code> value, including capitals.</td></tr>
+      </tbody>
+    </table>
 
     <h2>3. Settings</h2>
     <p>The run form asks for these. Fields with a default can be left as they are.</p>
-    <h3>Set Er Connection</h3>
+    <h3>Workflow Details</h3>
     <table>
       <thead><tr><th>Field</th><th>Description</th><th>Default</th></tr></thead>
-      <tbody><tr><td>Data source <em>(required)</em></td><td>Select one of your configured data sources.</td><td>—</td></tr></tbody>
+      <tbody><tr><td>Workflow Name <em>(required)</em></td><td>A name for this run, shown on the dashboard.</td><td>—</td></tr></tbody>
     </table>
-    <h3>Set Time Range</h3>
+    <h3>Time Range</h3>
     <table>
       <thead><tr><th>Field</th><th>Description</th><th>Default</th></tr></thead>
-      <tbody><tr><td>Since <em>(required)</em></td><td>The start time</td><td>—</td></tr><tr><td>Until <em>(required)</em></td><td>The end time</td><td>—</td></tr><tr><td>Timezone</td><td></td><td>—</td></tr></tbody>
+      <tbody><tr><td>Since <em>(required)</em></td><td>The start time.</td><td>—</td></tr><tr><td>Until <em>(required)</em></td><td>The end time.</td><td>—</td></tr><tr><td>Timezone</td><td>The timezone for the dates.</td><td>—</td></tr></tbody>
     </table>
-    <h3>Get Events</h3>
+    <p class="note">Only events inside the range are used. Widen it to get recovery days for blocks first grazed early in the range, and a cattle count for the first period.</p>
+    <h3>Data Source</h3>
     <table>
       <thead><tr><th>Field</th><th>Description</th><th>Default</th></tr></thead>
-      <tbody><tr><td>Event Types <em>(required)</em></td><td>Specify the event type(s) to analyze (optional). Leave this section empty to analyze all event types.</td><td>—</td></tr></tbody>
+      <tbody><tr><td>Data source <em>(required)</em></td><td>The EarthRanger connection to read events and features from.</td><td>—</td></tr></tbody>
     </table>
-    <h3>Get Events</h3>
+    <h3>Livestock Movement Events</h3>
     <table>
       <thead><tr><th>Field</th><th>Description</th><th>Default</th></tr></thead>
-      <tbody><tr><td>Event Types <em>(required)</em></td><td>Specify the event type(s) to analyze (optional). Leave this section empty to analyze all event types.</td><td>—</td></tr></tbody>
+      <tbody><tr><td>Event Types <em>(required)</em></td><td>The event type(s) that record livestock moving between blocks.</td><td>—</td></tr></tbody>
     </table>
-    <h3>Get Features By Type</h3>
+    <h3>Cattle Count Events</h3>
     <table>
       <thead><tr><th>Field</th><th>Description</th><th>Default</th></tr></thead>
-      <tbody><tr><td>Feature Type Names <em>(required)</em></td><td>Names of the feature types to fetch, e.g. Park or Census Block.</td><td>—</td></tr></tbody>
+      <tbody><tr><td>Event Types <em>(required)</em></td><td>The event type(s) that record cattle counts per zone.</td><td>—</td></tr></tbody>
     </table>
-    <h3>Set Workflow Details</h3>
+    <h3>Grazing Block Features</h3>
     <table>
       <thead><tr><th>Field</th><th>Description</th><th>Default</th></tr></thead>
-      <tbody><tr><td>Workflow Name <em>(required)</em></td><td></td><td>—</td></tr></tbody>
+      <tbody><tr><td>Feature Type Names <em>(required)</em></td><td>The EarthRanger feature type(s) holding the grazing blocks and the grazing zones, e.g. “Grazing Blocks” and “Grazing Zones”.</td><td>—</td></tr></tbody>
+    </table>
+    <h3>Base Maps</h3>
+    <table>
+      <thead><tr><th>Field</th><th>Description</th><th>Default</th></tr></thead>
+      <tbody><tr><td>Base maps</td><td>Tile layers under the map, bottom layer first.</td><td>World Topo Map, then World Imagery at 50% opacity</td></tr></tbody>
     </table>
 
-    <h2>4. Run it and find the results</h2>
+    <h2>4. Run it and read the results</h2>
     <p>The workflow writes its files to the results folder the runner gives it (<code>ECOSCOPE_WORKFLOWS_RESULTS</code>), and shows its dashboard when it finishes.</p>
+    <table>
+      <thead><tr><th>Widget</th><th>How to read it</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Stocking Intensity</strong></td><td>Cattle-days per hectare, averaged over all grazing periods. The sparkline shows the monthly average. Higher means blocks carry more grazing pressure per visit.</td></tr>
+        <tr><td><strong>Stocking Density</strong></td><td>Cattle per hectare while a block is being grazed.</td></tr>
+        <tr><td><strong>Grazing to Rest Ratio</strong></td><td>Days grazed for each day rested. Below 1 means blocks rest longer than they are grazed.</td></tr>
+        <tr><td><strong>Grazing Intensity</strong></td><td>Monthly average cattle-days per hectare for each grazing zone, so zones can be compared over time.</td></tr>
+        <tr><td><strong>Effective Grazing Intensity</strong></td><td>Grazing pressure spread over the whole graze-and-rest cycle: cattle per hectare, discounted by how long the blocks rested.</td></tr>
+        <tr><td><strong>Livestock Count</strong></td><td>Grazing zones coloured by cattle count, in 5 classes, over the outlines of every feature fetched.</td></tr>
+      </tbody>
+    </table>
+    <p>The CSV in the results folder has one row per grazing period, with every metric. The <a href="technical-guide.html#metrics">Technical Guide</a> explains how each column is calculated.</p>
+    <p class="note">Some values are blank by design. The latest period in each zone has no date out yet, so it has no duration or intensity. A block grazed for the first time within the time range has no recovery days.</p>
   </main>
 
   <footer class="site-footer">

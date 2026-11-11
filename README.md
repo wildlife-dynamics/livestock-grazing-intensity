@@ -1,70 +1,54 @@
 # livestock-grazing-intensity
 
-livestock-grazing-intensity
+Shows how hard each grazing block is grazed and how long it rests between grazings. The workflow reads livestock movement events and cattle count events from EarthRanger, and grazing block features for the block areas. It splits each zone's movements into grazing periods and calculates stocking density, grazing intensity and recovery time for every period.
 
-## What it does
+## What it produces
 
-| Step | What it does |
+**Dashboard**
+
+| Widget | Shows |
 |---|---|
-| **Set Er Connection** |  |
-| **Set Time Range** | Choose the period of time to analyze. |
-| **Get Events** | Get events. |
-| **Get Events** | Get events. |
-| **Extract Column As Type** |  |
-| **Extract Column As Type** |  |
-| **Get Features By Type** | Fetch every feature of the chosen EarthRanger feature types as a GeoDataFrame, with each feature's type and set. |
-| **Estimate Utm Crs** | Estimate the best UTM CRS for a GeoDataFrame and return it as an EPSG string. |
-| **Normalize Json Column** |  |
-| **Normalize Json Column** |  |
-| **Drop livestock column prefix** | Remove a prefix from column names in a DataFrame with duplicate handling. |
-| **Drop cattle column prefix** | Remove a prefix from column names in a DataFrame with duplicate handling. |
-| **Add Area Columns** | Add one area column per requested unit, named `{prefix}_{unit}` (e.g. area_m2, area_ha, area_km2, area_acre, area_mi2). |
-| **Map Columns** | Maps and transforms the columns of a DataFrame based on the provided parameters. The order of the operations is as follows: drop columns, retain/reorder columns, and rename columns. |
-| **Merge Block Movements** | Merge all columns that contain from/to block information into two columns, FROM and TO. |
-| **Map Column Value** | Map values in ``col`` through ``mapping`` and write the result to a new column. |
-| **Apply Color Map** | Adds a color column to the dataframe based on the categorical values in the specified column. |
-| **Map Columns** | Maps and transforms the columns of a DataFrame based on the provided parameters. The order of the operations is as follows: drop columns, retain/reorder columns, and rename columns. |
-| **Build Grazing Metrics** | One row per grazing period (zone, block set, date in -> date out), split by cattle count changes. |
-| **Draw Grouped Line Time Series Chart** | Multi-line time series chart, optionally stacked as filled area. |
-| **Draw Grouped Line Time Series Chart** | Multi-line time series chart, optionally stacked as filled area. |
-| **Draw Stat Sparkline** | Single value widget with a sparkline: a headline number (value_column aggregated over the whole frame), an optional caption (e.g. "182 patrols with sightings") and a sparkline of the same aggregate per time bucket. Returned as plotly HTML for create_plot_widget_single_view. |
-| **Draw Stat Sparkline** | Single value widget with a sparkline: a headline number (value_column aggregated over the whole frame), an optional caption (e.g. "182 patrols with sightings") and a sparkline of the same aggregate per time bucket. Returned as plotly HTML for create_plot_widget_single_view. |
-| **Draw Stat Sparkline** | Single value widget with a sparkline: a headline number (value_column aggregated over the whole frame), an optional caption (e.g. "182 patrols with sightings") and a sparkline of the same aggregate per time bucket. Returned as plotly HTML for create_plot_widget_single_view. |
-| **Merge Two Dataframes** | Merge two DataFrames using a database-style join. |
-| **Persist Stock Intensity Text** | Persist text to a file or cloud storage object. |
-| **Persist Text** | Persist text to a file or cloud storage object. |
-| **Persist Text** | Persist text to a file or cloud storage object. |
-| **Persist Text** | Persist text to a file or cloud storage object. |
-| **Persist Text** | Persist text to a file or cloud storage object. |
-| **Dataframe To Geodataframe** | Convert a plain DataFrame into a GeoDataFrame. |
-| **Create Stock Intensity Sparkline View** | Create a plot widget with a single view. |
-| **Create Plot Widget Single View** | Create a plot widget with a single view. |
-| **Create Plot Widget Single View** | Create a plot widget with a single view. |
-| **Create Plot Widget Single View** | Create a plot widget with a single view. |
-| **Create Plot Widget Single View** | Create a plot widget with a single view. |
-| **Apply Choropleth Colormap** | Colours a numeric column for choropleth display using Natural Breaks (Jenks) classification. |
-| **Compute View State From Gdf** |  |
-| **Create Geojson Layer** | Creates a GeoJSON layer definition based on the provided configuration. |
-| **Create Geojson Layer** | Creates a GeoJSON layer definition based on the provided configuration. |
-| **Combine Deckgl Map Layers** | Combine static and grouped map layers into a render-ready list. |
-| **Merge Widget Views** | Merge widgets with the same `title` and `widget_type`. |
-| **Set Base Maps** |  |
-| **Draw Map** | Creates a map based on the provided layer definitions and configuration. |
-| **Merge Widget Views** | Merge widgets with the same `title` and `widget_type`. |
-| **Merge Widget Views** | Merge widgets with the same `title` and `widget_type`. |
-| **Persist Text** | Persist text to a file or cloud storage object. |
-| **Merge Widget Views** | Merge widgets with the same `title` and `widget_type`. |
-| **Create Map Widget Single View** | Create a map widget with a single view. |
-| **Merge Widget Views** | Merge widgets with the same `title` and `widget_type`. |
-| **Set Workflow Details** | Add information that will help to differentiate this workflow from another. |
-| **Merge Widget Views** | Merge widgets with the same `title` and `widget_type`. |
-| **Set Groupers** |  |
-| **Persist Df** | Persist dataframe to a file or cloud storage object. |
-| **Gather Dashboard** |  |
+| Stocking Intensity | Average cattle-days per hectare across all grazing periods, with a monthly sparkline. |
+| Stocking Density | Average cattle per hectare, with a monthly sparkline. |
+| Grazing to Rest Ratio | Average days grazed per day rested, with a monthly sparkline. |
+| Grazing Intensity | Monthly average cattle-days per hectare, one line per grazing zone. |
+| Effective Grazing Intensity | Monthly average cattle per hectare over the full graze-and-rest cycle, one line per grazing zone. |
+| Livestock Count | Map of grazing zones coloured by cattle count (5 Natural Breaks classes), over the outlines of all fetched features. |
+
+**Files** (in the results folder)
+
+- A CSV of the grazing metrics table, one row per grazing period (see below).
+- The HTML for each chart, sparkline and the map.
+
+## How the metrics are worked out
+
+1. **Grazing periods.** Each livestock movement event starts a period in the blocks it moved *to*. The period ends when the next movement event in the same zone starts. Dates are taken at day level. Repeated moves to the same blocks on the same day count as one move.
+2. **Area.** The sum of the areas, in hectares, of the period's blocks. Block names are matched to feature names ignoring case and spaces. If any block has no matching feature, the area is left blank and the block is logged as a warning.
+3. **Cattle.** The zone's most recent count on or before the date in. Counts taken during the period add a new row from the day of the count. Several counts for one zone on the same day are added together.
+4. **Recovery.** The days since any of the same blocks was last left.
+
+| Column | Formula |
+|---|---|
+| Grazing duration (days) | date out − date in |
+| Recovery days | date in − previous grazing end date |
+| Stocking density (cattle/ha) | cattle ÷ area |
+| Stock intensity (cattle-days/ha) | cattle × duration ÷ area |
+| Grazing intensity (cattle-days/ha) | cattle × duration ÷ area (the same value as stock intensity) |
+| Grazing to Rest ratio | duration ÷ recovery days (blank when recovery is 0 or unknown) |
+| Effective grazing intensity | cattle × duration ÷ (area × (duration + recovery days)) |
+
+Some values are blank by design:
+
+- The most recent period in each zone has no date out yet, so it has no duration or intensity.
+- A block grazed for the first time within the time range has no recovery days.
 
 ## Requirements
 
-- Access to a **EarthRanger** data source, set up as a connection
+An **EarthRanger** data source, set up as a connection, with:
+
+- **Livestock movement events**: an event type whose details include a `communityzone` field and fields for the blocks moved from and to. Fields named `from`, `*_from`, `to`, `to_block` or `*_to` are all merged, and each can hold one block name or a list of names.
+- **Cattle count events**: an event type whose details include `communityzone` and `count` fields. The run stops if either field is missing.
+- **Grazing block features**: one or more feature types whose feature names match the block names used in the movement events. For the map, they must also include a polygon for each grazing zone, named exactly like its `communityzone` value.
 
 ---
 
@@ -79,43 +63,51 @@ In the workflow runner, add a new template using this repository's URL. Once add
 
 You'll be prompted to fill in the following parameters before running.
 
-### Set Er Connection
+### Workflow Details
 
 | Field | Description | Default |
 |---|---|---|
-| Data source *(required)* | Select one of your configured data sources. | — |
+| Workflow Name *(required)* | A name for this run, shown on the dashboard. | — |
 
-### Set Time Range
-
-| Field | Description | Default |
-|---|---|---|
-| Since *(required)* | The start time | — |
-| Until *(required)* | The end time | — |
-| Timezone |  | — |
-
-### Get Events
+### Time Range
 
 | Field | Description | Default |
 |---|---|---|
-| Event Types *(required)* | Specify the event type(s) to analyze (optional). Leave this section empty to analyze all event types. | — |
+| Since *(required)* | The start time. | — |
+| Until *(required)* | The end time. | — |
+| Timezone | The timezone for the dates. | — |
 
-### Get Events
+Only events inside the range are used. Widen it to get recovery days for blocks first grazed early in the range, and a cattle count for the first period.
 
-| Field | Description | Default |
-|---|---|---|
-| Event Types *(required)* | Specify the event type(s) to analyze (optional). Leave this section empty to analyze all event types. | — |
-
-### Get Features By Type
+### Data Source
 
 | Field | Description | Default |
 |---|---|---|
-| Feature Type Names *(required)* | Names of the feature types to fetch, e.g. Park or Census Block. | — |
+| Data source *(required)* | The EarthRanger connection to read events and features from. | — |
 
-### Set Workflow Details
+### Livestock Movement Events
 
 | Field | Description | Default |
 |---|---|---|
-| Workflow Name *(required)* |  | — |
+| Event Types *(required)* | The event type(s) that record livestock moving between blocks. | — |
+
+### Cattle Count Events
+
+| Field | Description | Default |
+|---|---|---|
+| Event Types *(required)* | The event type(s) that record cattle counts per zone. | — |
+
+### Grazing Block Features
+
+| Field | Description | Default |
+|---|---|---|
+| Feature Type Names *(required)* | The EarthRanger feature type(s) holding the grazing blocks and the grazing zones, e.g. "Grazing Blocks" and "Grazing Zones". | — |
+
+### Base Maps
+
+| Field | Description | Default |
+|---|---|---|
+| Base maps | Tile layers under the map, bottom layer first. | World Topo Map, then World Imagery at 50% opacity |
 
 ---
 
@@ -128,5 +120,7 @@ You'll be prompted to fill in the following parameters before running.
 # run the test cases in test-cases.yaml
 pixi run --manifest-path pixi.toml -e default bash dev/pytest-cli.sh livestock_grazing_intensity --all
 ```
+
+The grazing tasks (`merge_block_movements`, `build_grazing_metrics`, `add_area_columns`, `dataframe_to_geodataframe`) come from `ecoscope-workflows-ext-distance-sample-counts`.
 
 Documentation: [docs/index.html](docs/index.html).

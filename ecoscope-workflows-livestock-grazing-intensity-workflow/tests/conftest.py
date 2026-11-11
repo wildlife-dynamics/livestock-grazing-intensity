@@ -44,7 +44,6 @@ MATCHSPEC_OVERRIDE = "ecoscope-workflows-livestock-grazing-intensity-workflow"
 RESULTS_ENV_VAR = "ECOSCOPE_WORKFLOWS_RESULTS"
 IO_TASKS_IMPORTABLE_REFERENCES = [
     "ecoscope.platform.tasks.io.get_events",
-    "ecoscope.platform.tasks.io.get_events",
 ]
 
 yaml = ruamel.yaml.YAML(typ="safe")
