@@ -1,0 +1,178 @@
+{
+  "properties": {
+    "er_connection": {
+      "additionalProperties": false,
+      "properties": {
+        "data_source": {
+          "$ref": "#/$defs/EarthRangerConnection",
+          "description": "Select one of your configured data sources.",
+          "title": ""
+        }
+      },
+      "required": [
+        "data_source"
+      ],
+      "type": "object",
+      "title": "Set Er Connection"
+    },
+    "time_range": {
+      "additionalProperties": false,
+      "properties": {
+        "since": {
+          "description": "The start time",
+          "format": "date-time",
+          "title": "Since",
+          "type": "string"
+        },
+        "until": {
+          "description": "The end time",
+          "format": "date-time",
+          "title": "Until",
+          "type": "string"
+        },
+        "timezone": {
+          "$ref": "#/$defs/TimezoneInfo",
+          "default": null,
+          "title": "Timezone"
+        }
+      },
+      "required": [
+        "since",
+        "until"
+      ],
+      "type": "object",
+      "description": "Choose the period of time to analyze.",
+      "title": "Set Time Range"
+    },
+    "livestock_movement_events": {
+      "additionalProperties": false,
+      "properties": {
+        "event_types": {
+          "description": "Specify the event type(s) to analyze (optional). Leave this section empty to analyze all event types.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Event Types",
+          "type": "array"
+        }
+      },
+      "required": [
+        "event_types"
+      ],
+      "type": "object",
+      "title": "Get Events"
+    },
+    "cattle_count_events": {
+      "additionalProperties": false,
+      "properties": {
+        "event_types": {
+          "description": "Specify the event type(s) to analyze (optional). Leave this section empty to analyze all event types.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Event Types",
+          "type": "array"
+        }
+      },
+      "required": [
+        "event_types"
+      ],
+      "type": "object",
+      "title": "Get Events"
+    },
+    "features_by_type": {
+      "additionalProperties": false,
+      "properties": {
+        "feature_type_names": {
+          "description": "Names of the feature types to fetch, e.g. Park or Census Block.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Feature Type Names",
+          "type": "array"
+        }
+      },
+      "required": [
+        "feature_type_names"
+      ],
+      "type": "object",
+      "title": "Get Features By Type"
+    },
+    "workflow_details": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Workflow Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object",
+      "description": "Add information that will help to differentiate this workflow from another.",
+      "title": "Set Workflow Details"
+    }
+  },
+  "$defs": {
+    "EarthRangerConnection": {
+      "properties": {
+        "name": {
+          "title": "Data Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "EarthRangerConnection",
+      "type": "object"
+    },
+    "TimezoneInfo": {
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "tzCode": {
+          "title": "Tzcode",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "utc": {
+          "title": "Utc",
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "tzCode",
+        "name",
+        "utc"
+      ],
+      "title": "TimezoneInfo",
+      "type": "object"
+    }
+  },
+  "uiSchema": {
+    "time_range": {
+      "ui:order": [
+        "since",
+        "until",
+        "timezone"
+      ]
+    },
+    "ui:order": [
+      "er_connection",
+      "time_range",
+      "livestock_movement_events",
+      "cattle_count_events",
+      "features_by_type",
+      "workflow_details"
+    ]
+  },
+  "additionalProperties": false
+}

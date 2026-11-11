@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>livestock-grazing-intensity</title>
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="bar">
+      <a class="brand" href="index.html">livestock-grazing-intensity</a>
+      <nav>
+        <a href="index.html" class="active">Overview</a>
+        <a href="user-guide.html">User Guide</a>
+        <a href="technical-guide.html">Technical Guide</a>
+        <a href="troubleshooting.html">Troubleshooting</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <h1>livestock-grazing-intensity</h1>
+    <p class="lede">livestock-grazing-intensity</p>
+
+    <div class="card-grid">
+      <a class="card" href="user-guide.html">
+        <h3>User Guide</h3>
+        <p>Loading the workflow, connecting its data sources and filling in its settings.</p>
+      </a>
+      <a class="card" href="technical-guide.html">
+        <h3>Technical Guide</h3>
+        <p>Each step of the workflow, the task packages it uses, and how to recompile and test it.</p>
+      </a>
+      <a class="card" href="troubleshooting.html">
+        <h3>Troubleshooting</h3>
+        <p>Common errors while configuring or running the workflow, and how to resolve them.</p>
+      </a>
+    </div>
+
+    <h2>What it does</h2>
+    <table>
+      <thead><tr><th>Step</th><th>What it does</th></tr></thead>
+      <tbody><tr><td><strong>Set Er Connection</strong></td><td></td></tr><tr><td><strong>Set Time Range</strong></td><td>Choose the period of time to analyze.</td></tr><tr><td><strong>Get Events</strong></td><td>Get events.</td></tr><tr><td><strong>Get Events</strong></td><td>Get events.</td></tr><tr><td><strong>Extract Column As Type</strong></td><td></td></tr><tr><td><strong>Extract Column As Type</strong></td><td></td></tr><tr><td><strong>Get Features By Type</strong></td><td>Fetch every feature of the chosen EarthRanger feature types as a GeoDataFrame, with each feature&#x27;s type and set.</td></tr><tr><td><strong>Estimate Utm Crs</strong></td><td>Estimate the best UTM CRS for a GeoDataFrame and return it as an EPSG string.</td></tr><tr><td><strong>Normalize Json Column</strong></td><td></td></tr><tr><td><strong>Normalize Json Column</strong></td><td></td></tr><tr><td><strong>Drop livestock column prefix</strong></td><td>Remove a prefix from column names in a DataFrame with duplicate handling.</td></tr><tr><td><strong>Drop cattle column prefix</strong></td><td>Remove a prefix from column names in a DataFrame with duplicate handling.</td></tr><tr><td><strong>Add Area Columns</strong></td><td>Add one area column per requested unit, named `{prefix}_{unit}` (e.g. area_m2, area_ha, area_km2, area_acre, area_mi2).</td></tr><tr><td><strong>Map Columns</strong></td><td>Maps and transforms the columns of a DataFrame based on the provided parameters. The order of the operations is as follows: drop columns, retain/reorder columns, and rename columns.</td></tr><tr><td><strong>Merge Block Movements</strong></td><td>Merge all columns that contain from/to block information into two columns, FROM and TO.</td></tr><tr><td><strong>Map Column Value</strong></td><td>Map values in ``col`` through ``mapping`` and write the result to a new column.</td></tr><tr><td><strong>Apply Color Map</strong></td><td>Adds a color column to the dataframe based on the categorical values in the specified column.</td></tr><tr><td><strong>Map Columns</strong></td><td>Maps and transforms the columns of a DataFrame based on the provided parameters. The order of the operations is as follows: drop columns, retain/reorder columns, and rename columns.</td></tr><tr><td><strong>Build Grazing Metrics</strong></td><td>One row per grazing period (zone, block set, date in -&gt; date out), split by cattle count changes.</td></tr><tr><td><strong>Draw Grouped Line Time Series Chart</strong></td><td>Multi-line time series chart, optionally stacked as filled area.</td></tr><tr><td><strong>Draw Grouped Line Time Series Chart</strong></td><td>Multi-line time series chart, optionally stacked as filled area.</td></tr><tr><td><strong>Draw Stat Sparkline</strong></td><td>Single value widget with a sparkline: a headline number (value_column aggregated over the whole frame), an optional caption (e.g. &quot;182 patrols with sightings&quot;) and a sparkline of the same aggregate per time bucket. Returned as plotly HTML for create_plot_widget_single_view.</td></tr><tr><td><strong>Draw Stat Sparkline</strong></td><td>Single value widget with a sparkline: a headline number (value_column aggregated over the whole frame), an optional caption (e.g. &quot;182 patrols with sightings&quot;) and a sparkline of the same aggregate per time bucket. Returned as plotly HTML for create_plot_widget_single_view.</td></tr><tr><td><strong>Draw Stat Sparkline</strong></td><td>Single value widget with a sparkline: a headline number (value_column aggregated over the whole frame), an optional caption (e.g. &quot;182 patrols with sightings&quot;) and a sparkline of the same aggregate per time bucket. Returned as plotly HTML for create_plot_widget_single_view.</td></tr><tr><td><strong>Merge Two Dataframes</strong></td><td>Merge two DataFrames using a database-style join.</td></tr><tr><td><strong>Persist Stock Intensity Text</strong></td><td>Persist text to a file or cloud storage object.</td></tr><tr><td><strong>Persist Text</strong></td><td>Persist text to a file or cloud storage object.</td></tr><tr><td><strong>Persist Text</strong></td><td>Persist text to a file or cloud storage object.</td></tr><tr><td><strong>Persist Text</strong></td><td>Persist text to a file or cloud storage object.</td></tr><tr><td><strong>Persist Text</strong></td><td>Persist text to a file or cloud storage object.</td></tr><tr><td><strong>Dataframe To Geodataframe</strong></td><td>Convert a plain DataFrame into a GeoDataFrame.</td></tr><tr><td><strong>Create Stock Intensity Sparkline View</strong></td><td>Create a plot widget with a single view.</td></tr><tr><td><strong>Create Plot Widget Single View</strong></td><td>Create a plot widget with a single view.</td></tr><tr><td><strong>Create Plot Widget Single View</strong></td><td>Create a plot widget with a single view.</td></tr><tr><td><strong>Create Plot Widget Single View</strong></td><td>Create a plot widget with a single view.</td></tr><tr><td><strong>Create Plot Widget Single View</strong></td><td>Create a plot widget with a single view.</td></tr><tr><td><strong>Apply Choropleth Colormap</strong></td><td>Colours a numeric column for choropleth display using Natural Breaks (Jenks) classification.</td></tr><tr><td><strong>Compute View State From Gdf</strong></td><td></td></tr><tr><td><strong>Create Geojson Layer</strong></td><td>Creates a GeoJSON layer definition based on the provided configuration.</td></tr><tr><td><strong>Create Geojson Layer</strong></td><td>Creates a GeoJSON layer definition based on the provided configuration.</td></tr><tr><td><strong>Combine Deckgl Map Layers</strong></td><td>Combine static and grouped map layers into a render-ready list.</td></tr><tr><td><strong>Merge Widget Views</strong></td><td>Merge widgets with the same `title` and `widget_type`.</td></tr><tr><td><strong>Set Base Maps</strong></td><td></td></tr><tr><td><strong>Draw Map</strong></td><td>Creates a map based on the provided layer definitions and configuration.</td></tr><tr><td><strong>Merge Widget Views</strong></td><td>Merge widgets with the same `title` and `widget_type`.</td></tr><tr><td><strong>Merge Widget Views</strong></td><td>Merge widgets with the same `title` and `widget_type`.</td></tr><tr><td><strong>Persist Text</strong></td><td>Persist text to a file or cloud storage object.</td></tr><tr><td><strong>Merge Widget Views</strong></td><td>Merge widgets with the same `title` and `widget_type`.</td></tr><tr><td><strong>Create Map Widget Single View</strong></td><td>Create a map widget with a single view.</td></tr><tr><td><strong>Merge Widget Views</strong></td><td>Merge widgets with the same `title` and `widget_type`.</td></tr><tr><td><strong>Set Workflow Details</strong></td><td>Add information that will help to differentiate this workflow from another.</td></tr><tr><td><strong>Merge Widget Views</strong></td><td>Merge widgets with the same `title` and `widget_type`.</td></tr><tr><td><strong>Set Groupers</strong></td><td></td></tr><tr><td><strong>Persist Df</strong></td><td>Persist dataframe to a file or cloud storage object.</td></tr><tr><td><strong>Gather Dashboard</strong></td><td></td></tr></tbody>
+    </table>
+
+    <h2>Requirements</h2>
+    <ul><li>Access to a <strong>EarthRanger</strong> data source, set up as a connection</li></ul>
+
+    <h2>Get started</h2>
+    <p>New to the workflow? Start with the <a href="user-guide.html">User Guide</a>. Running into an error? Check <a href="troubleshooting.html">Troubleshooting</a> first.</p>
+  </main>
+
+  <footer class="site-footer">
+    <p>livestock-grazing-intensity &middot; Wildlife Dynamics</p>
+  </footer>
+</body>
+</html>
