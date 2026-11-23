@@ -1,0 +1,1962 @@
+{
+  "id": "livestock_grazing_intensity",
+  "name": "Livestock grazing intensity",
+  "description": "",
+  "created": "2026-11-11T13:25:06+00:00",
+  "updated": "2026-11-17T08:34:39+00:00",
+  "nodes": [
+    {
+      "id": "workflow_details",
+      "task": "set_workflow_details",
+      "position": {
+        "x": 12,
+        "y": 1485
+      },
+      "params": {
+        "description": {
+          "mode": "value",
+          "value": ""
+        },
+        "name": {
+          "mode": "form"
+        }
+      },
+      "name": "Workflow Details"
+    },
+    {
+      "id": "er_connection",
+      "task": "set_er_connection",
+      "position": {
+        "x": 12,
+        "y": 1358
+      },
+      "params": {
+        "data_source": {
+          "mode": "form"
+        }
+      },
+      "name": "Data Source"
+    },
+    {
+      "id": "time_range",
+      "task": "set_time_range",
+      "position": {
+        "x": 12,
+        "y": 1930
+      },
+      "params": {
+        "time_format": {
+          "mode": "value",
+          "value": "%d %b %Y %H:%M:%S"
+        },
+        "since": {
+          "mode": "value",
+          "value": "2026-01-01T16:31:24"
+        },
+        "until": {
+          "mode": "value",
+          "value": "2026-11-11T16:31:31"
+        },
+        "timezone": {
+          "mode": "value",
+          "value": {
+            "label": "Africa/Nairobi (UTC+03:00)",
+            "tzCode": "Africa/Nairobi",
+            "name": "(UTC+03:00) Nairobi",
+            "utc": "+03:00"
+          }
+        }
+      },
+      "name": "Time Range"
+    },
+    {
+      "id": "dashboard_groupers",
+      "task": "set_groupers",
+      "position": {
+        "x": 12,
+        "y": 1231
+      },
+      "params": {
+        "groupers": {
+          "mode": "value",
+          "value": null
+        }
+      },
+      "name": "Dashboard Groupers"
+    },
+    {
+      "id": "livestock_movement_events",
+      "task": "get_events",
+      "position": {
+        "x": 373,
+        "y": 1386
+      },
+      "params": {
+        "client": {
+          "mode": "connect",
+          "from": [
+            "er_connection"
+          ]
+        },
+        "time_range": {
+          "mode": "connect",
+          "from": [
+            "time_range"
+          ]
+        },
+        "include_details": {
+          "mode": "value",
+          "value": true
+        },
+        "event_columns": {
+          "mode": "value",
+          "value": [
+            "id",
+            "time",
+            "event_type",
+            "event_category",
+            "title",
+            "reported_by",
+            "created_at",
+            "serial_number",
+            "is_collection",
+            "event_details",
+            "geometry"
+          ]
+        },
+        "event_states": {
+          "mode": "value",
+          "value": []
+        },
+        "include_null_geometry": {
+          "mode": "value",
+          "value": true
+        },
+        "raise_on_empty": {
+          "mode": "value",
+          "value": false
+        },
+        "include_updates": {
+          "mode": "value",
+          "value": false
+        },
+        "include_related_events": {
+          "mode": "value",
+          "value": false
+        },
+        "include_display_values": {
+          "mode": "value",
+          "value": true
+        },
+        "force_point_geometry": {
+          "mode": "value",
+          "value": true
+        },
+        "event_types": {
+          "mode": "value",
+          "value": [
+            "livestock_block_movement"
+          ]
+        }
+      },
+      "name": "Livestock Movement Events"
+    },
+    {
+      "id": "cattle_count_events",
+      "task": "get_events",
+      "position": {
+        "x": 373,
+        "y": 1776
+      },
+      "params": {
+        "client": {
+          "mode": "connect",
+          "from": [
+            "er_connection"
+          ]
+        },
+        "time_range": {
+          "mode": "connect",
+          "from": [
+            "time_range"
+          ]
+        },
+        "include_details": {
+          "mode": "value",
+          "value": true
+        },
+        "event_columns": {
+          "mode": "value",
+          "value": [
+            "id",
+            "time",
+            "event_type",
+            "event_category",
+            "title",
+            "reported_by",
+            "created_at",
+            "serial_number",
+            "is_collection",
+            "event_details",
+            "geometry"
+          ]
+        },
+        "event_states": {
+          "mode": "value",
+          "value": []
+        },
+        "include_null_geometry": {
+          "mode": "value",
+          "value": true
+        },
+        "raise_on_empty": {
+          "mode": "value",
+          "value": false
+        },
+        "include_updates": {
+          "mode": "value",
+          "value": false
+        },
+        "include_related_events": {
+          "mode": "value",
+          "value": false
+        },
+        "include_display_values": {
+          "mode": "value",
+          "value": true
+        },
+        "force_point_geometry": {
+          "mode": "value",
+          "value": true
+        },
+        "event_types": {
+          "mode": "value",
+          "value": [
+            "cattle_count"
+          ]
+        }
+      },
+      "name": "Cattle Count Events"
+    },
+    {
+      "id": "base_maps",
+      "task": "set_base_maps",
+      "position": {
+        "x": 12,
+        "y": 861
+      },
+      "params": {},
+      "name": "Base Maps"
+    },
+    {
+      "id": "cattle_count_dated",
+      "task": "extract_column_as_type",
+      "position": {
+        "x": 1182,
+        "y": 1860
+      },
+      "params": {
+        "df": {
+          "mode": "connect",
+          "from": [
+            "cattle_count_events"
+          ]
+        },
+        "column_name": {
+          "mode": "value",
+          "value": "time"
+        },
+        "output_type": {
+          "mode": "value",
+          "value": "date"
+        },
+        "output_column_name": {
+          "mode": "value",
+          "value": "time"
+        },
+        "fan_out": {
+          "mode": "value",
+          "value": true
+        }
+      },
+      "name": "Convert Cattle Count Time to Date"
+    },
+    {
+      "id": "livestock_movement_dated",
+      "task": "extract_column_as_type",
+      "position": {
+        "x": 1182,
+        "y": 1470
+      },
+      "params": {
+        "df": {
+          "mode": "connect",
+          "from": [
+            "livestock_movement_events"
+          ]
+        },
+        "column_name": {
+          "mode": "value",
+          "value": "time"
+        },
+        "output_type": {
+          "mode": "value",
+          "value": "date"
+        },
+        "output_column_name": {
+          "mode": "value",
+          "value": "date"
+        },
+        "fan_out": {
+          "mode": "value",
+          "value": true
+        }
+      },
+      "name": "Add Livestock Movement Date"
+    },
+    {
+      "id": "features_by_type",
+      "task": "get_features_by_type",
+      "position": {
+        "x": 798,
+        "y": 1095
+      },
+      "params": {
+        "client": {
+          "mode": "connect",
+          "from": [
+            "er_connection"
+          ]
+        },
+        "raise_on_empty": {
+          "mode": "value",
+          "value": false
+        },
+        "feature_type_names": {
+          "mode": "form"
+        }
+      },
+      "name": "Grazing Block Features"
+    },
+    {
+      "id": "grazing_block_utm_crs",
+      "task": "estimate_utm_crs",
+      "position": {
+        "x": 1982,
+        "y": 1278
+      },
+      "params": {
+        "geodataframe": {
+          "mode": "connect",
+          "from": [
+            "features_by_type"
+          ]
+        }
+      },
+      "name": "Estimate UTM Projection for Grazing Blocks"
+    },
+    {
+      "id": "livestock_movement_details",
+      "task": "normalize_json_column",
+      "position": {
+        "x": 1579,
+        "y": 1482
+      },
+      "params": {
+        "df": {
+          "mode": "connect",
+          "from": [
+            "livestock_movement_dated"
+          ]
+        },
+        "column": {
+          "mode": "value",
+          "value": "event_details"
+        },
+        "skip_if_not_exists": {
+          "mode": "value",
+          "value": true
+        },
+        "sort_columns": {
+          "mode": "value",
+          "value": true
+        }
+      },
+      "name": "Expand Livestock Movement Details"
+    },
+    {
+      "id": "cattle_count_details",
+      "task": "normalize_json_column",
+      "position": {
+        "x": 1579,
+        "y": 1872
+      },
+      "params": {
+        "df": {
+          "mode": "connect",
+          "from": [
+            "cattle_count_dated"
+          ]
+        },
+        "column": {
+          "mode": "value",
+          "value": "event_details"
+        },
+        "skip_if_not_exists": {
+          "mode": "value",
+          "value": true
+        },
+        "sort_columns": {
+          "mode": "value",
+          "value": true
+        }
+      },
+      "name": "Expand Cattle Count Details"
+    },
+    {
+      "id": "livestock_movement_cleaned",
+      "task": "drop_column_prefix",
+      "position": {
+        "x": 1982,
+        "y": 1484
+      },
+      "params": {
+        "df": {
+          "mode": "connect",
+          "from": [
+            "livestock_movement_details"
+          ]
+        },
+        "prefix": {
+          "mode": "value",
+          "value": "event_details__"
+        },
+        "duplicate_strategy": {
+          "mode": "value",
+          "value": "suffix"
+        }
+      },
+      "name": "Clean Livestock Movement Column Names"
+    },
+    {
+      "id": "cattle_count_cleaned",
+      "task": "drop_column_prefix",
+      "position": {
+        "x": 1982,
+        "y": 1884
+      },
+      "params": {
+        "df": {
+          "mode": "connect",
+          "from": [
+            "cattle_count_details"
+          ]
+        },
+        "prefix": {
+          "mode": "value",
+          "value": "event_details__"
+        },
+        "duplicate_strategy": {
+          "mode": "value",
+          "value": "suffix"
+        }
+      },
+      "name": "Clean Cattle Count Column Names"
+    },
+    {
+      "id": "grazing_block_areas",
+      "task": "add_area_columns",
+      "position": {
+        "x": 2392,
+        "y": 1271
+      },
+      "params": {
+        "crs": {
+          "mode": "connect",
+          "from": [
+            "grazing_block_utm_crs"
+          ]
+        },
+        "gdf": {
+          "mode": "connect",
+          "from": [
+            "features_by_type"
+          ]
+        },
+        "decimals": {
+          "mode": "value",
+          "value": 2
+        },
+        "units": {
+          "mode": "value",
+          "value": [
+            "ha"
+          ]
+        },
+        "prefix": {
+          "mode": "value",
+          "value": "area"
+        }
+      },
+      "name": "Calculate Grazing Block Areas"
+    },
+    {
+      "id": "cattle_count_renamed",
+      "task": "map_columns",
+      "position": {
+        "x": 2392,
+        "y": 1848
+      },
+      "params": {
+        "df": {
+          "mode": "connect",
+          "from": [
+            "cattle_count_cleaned"
+          ]
+        },
+        "rename_columns": {
+          "mode": "value",
+          "value": {
+            "communityzone": "Community/Zone",
+            "count": "Count"
+          }
+        },
+        "drop_columns": {
+          "mode": "value",
+          "value": []
+        },
+        "retain_columns": {
+          "mode": "value",
+          "value": []
+        },
+        "raise_if_not_found": {
+          "mode": "value",
+          "value": true
+        },
+        "duplicate_strategy": {
+          "mode": "value",
+          "value": "suffix"
+        }
+      },
+      "name": "Rename Cattle Count Columns"
+    },
+    {
+      "id": "livestock_block_movements",
+      "task": "merge_block_movements",
+      "position": {
+        "x": 2392,
+        "y": 1518
+      },
+      "params": {
+        "events_df": {
+          "mode": "connect",
+          "from": [
+            "livestock_movement_cleaned"
+          ]
+        }
+      },
+      "name": "Merge Livestock From/To Blocks"
+    },
+    {
+      "id": "zone_boundary_colors",
+      "task": "apply_color_map",
+      "position": {
+        "x": 2775,
+        "y": 12
+      },
+      "params": {
+        "df": {
+          "mode": "connect",
+          "from": [
+            "grazing_block_areas"
+          ]
+        },
+        "input_column_name": {
+          "mode": "value",
+          "value": "feature_type"
+        },
+        "colormap": {
+          "mode": "value",
+          "value": "BrBG"
+        },
+        "output_column_name": {
+          "mode": "value",
+          "value": "grazing_zone_colors"
+        }
+      },
+      "name": "Color Grazing Zone Boundaries"
+    },
+    {
+      "id": "grazing_block_geometry",
+      "task": "map_columns",
+      "position": {
+        "x": 2775,
+        "y": 210
+      },
+      "params": {
+        "df": {
+          "mode": "connect",
+          "from": [
+            "grazing_block_areas"
+          ]
+        },
+        "retain_columns": {
+          "mode": "value",
+          "value": [
+            "id",
+            "name",
+            "geometry"
+          ]
+        },
+        "drop_columns": {
+          "mode": "value",
+          "value": []
+        },
+        "rename_columns": {
+          "mode": "value",
+          "value": {}
+        },
+        "raise_if_not_found": {
+          "mode": "value",
+          "value": true
+        },
+        "duplicate_strategy": {
+          "mode": "value",
+          "value": "suffix"
+        }
+      },
+      "name": "Keep Grazing Block ID, Name and Geometry"
+    },
+    {
+      "id": "grazing_metrics",
+      "task": "build_grazing_metrics",
+      "position": {
+        "x": 2775,
+        "y": 1494
+      },
+      "params": {
+        "events_df": {
+          "mode": "connect",
+          "from": [
+            "livestock_block_movements"
+          ]
+        },
+        "cattle_df": {
+          "mode": "connect",
+          "from": [
+            "cattle_count_renamed"
+          ]
+        },
+        "block_areas_ha": {
+          "mode": "connect",
+          "from": [
+            "grazing_block_areas"
+          ]
+        }
+      },
+      "name": "Calculate Grazing Metrics"
+    },
+    {
+      "id": "grazing_intensity_chart",
+      "task": "draw_grouped_line_time_series_chart",
+      "position": {
+        "x": 5183,
+        "y": 442
+      },
+      "params": {
+        "dataframe": {
+          "mode": "connect",
+          "from": [
+            "grazing_metrics"
+          ]
+        },
+        "x_axis": {
+          "mode": "value",
+          "value": "Date in"
+        },
+        "y_axis": {
+          "mode": "value",
+          "value": "Grazing intensity (cattle-days/ha)"
+        },
+        "agg_function": {
+          "mode": "value",
+          "value": "mean"
+        },
+        "time_frequency": {
+          "mode": "value",
+          "value": "Month"
+        },
+        "group_column": {
+          "mode": "value",
+          "value": "Grazing Zone"
+        },
+        "fill": {
+          "mode": "value",
+          "value": true
+        },
+        "group_order": {
+          "mode": "value",
+          "value": null
+        },
+        "ascending": {
+          "mode": "value",
+          "value": true
+        },
+        "color_column": {
+          "mode": "value",
+          "value": null
+        },
+        "plot_style": {
+          "mode": "value",
+          "value": null
+        },
+        "line_style": {
+          "mode": "value",
+          "value": null
+        },
+        "layout_style": {
+          "mode": "value",
+          "value": null
+        },
+        "tick_frequency": {
+          "mode": "value",
+          "value": null
+        },
+        "widget_id": {
+          "mode": "value",
+          "value": null
+        }
+      },
+      "name": "Draw Grazing Intensity Chart"
+    },
+    {
+      "id": "effective_intensity_chart",
+      "task": "draw_grouped_line_time_series_chart",
+      "position": {
+        "x": 5183,
+        "y": 904
+      },
+      "params": {
+        "dataframe": {
+          "mode": "connect",
+          "from": [
+            "grazing_metrics"
+          ]
+        },
+        "x_axis": {
+          "mode": "value",
+          "value": "Date in"
+        },
+        "y_axis": {
+          "mode": "value",
+          "value": "Effective grazing intensity (cattle/ha over graze+rest cycle)"
+        },
+        "agg_function": {
+          "mode": "value",
+          "value": "mean"
+        },
+        "fill": {
+          "mode": "value",
+          "value": true
+        },
+        "time_frequency": {
+          "mode": "value",
+          "value": "Month"
+        },
+        "group_column": {
+          "mode": "value",
+          "value": "Grazing Zone"
+        },
+        "group_order": {
+          "mode": "value",
+          "value": null
+        },
+        "ascending": {
+          "mode": "value",
+          "value": true
+        },
+        "color_column": {
+          "mode": "value",
+          "value": null
+        },
+        "plot_style": {
+          "mode": "value",
+          "value": null
+        },
+        "line_style": {
+          "mode": "value",
+          "value": null
+        },
+        "layout_style": {
+          "mode": "value",
+          "value": null
+        },
+        "tick_frequency": {
+          "mode": "value",
+          "value": null
+        },
+        "widget_id": {
+          "mode": "value",
+          "value": null
+        }
+      },
+      "name": "Draw Effective Grazing Intensity Chart"
+    },
+    {
+      "id": "stock_intensity_sparkline",
+      "task": "draw_stat_sparkline",
+      "position": {
+        "x": 5183,
+        "y": 1386
+      },
+      "params": {
+        "dataframe": {
+          "mode": "connect",
+          "from": [
+            "grazing_metrics"
+          ]
+        },
+        "value_column": {
+          "mode": "value",
+          "value": "Stock intensity (cattle-days/ha)"
+        },
+        "agg_function": {
+          "mode": "value",
+          "value": "mean"
+        },
+        "time_column": {
+          "mode": "value",
+          "value": "Date in"
+        },
+        "decimal_places": {
+          "mode": "value",
+          "value": 2
+        },
+        "time_frequency": {
+          "mode": "value",
+          "value": "Month"
+        },
+        "as_percent": {
+          "mode": "value",
+          "value": false
+        },
+        "caption_column": {
+          "mode": "value",
+          "value": null
+        },
+        "caption_agg_function": {
+          "mode": "value",
+          "value": null
+        },
+        "caption_template": {
+          "mode": "value",
+          "value": "{value:,.0f}"
+        },
+        "line_color": {
+          "mode": "value",
+          "value": "#2f6b9a"
+        }
+      },
+      "name": "Draw Stock Intensity Sparkline"
+    },
+    {
+      "id": "stocking_density_sparkline",
+      "task": "draw_stat_sparkline",
+      "position": {
+        "x": 5183,
+        "y": 1776
+      },
+      "params": {
+        "dataframe": {
+          "mode": "connect",
+          "from": [
+            "grazing_metrics"
+          ]
+        },
+        "value_column": {
+          "mode": "value",
+          "value": "Stocking density (cattle/ha)"
+        },
+        "agg_function": {
+          "mode": "value",
+          "value": "mean"
+        },
+        "time_column": {
+          "mode": "value",
+          "value": "Date in"
+        },
+        "time_frequency": {
+          "mode": "value",
+          "value": "Month"
+        },
+        "as_percent": {
+          "mode": "value",
+          "value": false
+        },
+        "decimal_places": {
+          "mode": "value",
+          "value": 2
+        },
+        "caption_column": {
+          "mode": "value",
+          "value": null
+        },
+        "caption_agg_function": {
+          "mode": "value",
+          "value": null
+        },
+        "caption_template": {
+          "mode": "value",
+          "value": "{value:,.0f}"
+        },
+        "line_color": {
+          "mode": "value",
+          "value": "#2f6b9a"
+        }
+      },
+      "name": "Draw Stocking Density Sparkline"
+    },
+    {
+      "id": "graze_rest_ratio_sparkline",
+      "task": "draw_stat_sparkline",
+      "position": {
+        "x": 5183,
+        "y": 2364
+      },
+      "params": {
+        "dataframe": {
+          "mode": "connect",
+          "from": [
+            "grazing_metrics"
+          ]
+        },
+        "value_column": {
+          "mode": "value",
+          "value": "Grazing to Rest ratio"
+        },
+        "agg_function": {
+          "mode": "value",
+          "value": "mean"
+        },
+        "time_column": {
+          "mode": "value",
+          "value": "Date in"
+        },
+        "time_frequency": {
+          "mode": "value",
+          "value": "Month"
+        },
+        "as_percent": {
+          "mode": "value",
+          "value": false
+        },
+        "decimal_places": {
+          "mode": "value",
+          "value": 2
+        },
+        "caption_column": {
+          "mode": "value",
+          "value": null
+        },
+        "caption_agg_function": {
+          "mode": "value",
+          "value": null
+        },
+        "caption_template": {
+          "mode": "value",
+          "value": "{value:,.0f}"
+        },
+        "line_color": {
+          "mode": "value",
+          "value": "#2f6b9a"
+        }
+      },
+      "name": "Draw Grazing to Rest Ratio Sparkline"
+    },
+    {
+      "id": "grazing_metrics_with_geometry",
+      "task": "merge_two_dataframes",
+      "position": {
+        "x": 3185,
+        "y": 104
+      },
+      "params": {
+        "right": {
+          "mode": "connect",
+          "from": [
+            "grazing_block_geometry"
+          ]
+        },
+        "left": {
+          "mode": "connect",
+          "from": [
+            "grazing_metrics"
+          ]
+        },
+        "how": {
+          "mode": "value",
+          "value": "left"
+        },
+        "on": {
+          "mode": "value",
+          "value": null
+        },
+        "left_on": {
+          "mode": "value",
+          "value": "Grazing Zone"
+        },
+        "right_on": {
+          "mode": "value",
+          "value": "name"
+        },
+        "left_index": {
+          "mode": "value",
+          "value": false
+        },
+        "right_index": {
+          "mode": "value",
+          "value": false
+        },
+        "fillna_value": {
+          "mode": "value",
+          "value": null
+        }
+      },
+      "name": "Join Grazing Metrics to Block Geometry"
+    },
+    {
+      "id": "stock_intensity_sparkline_html",
+      "task": "persist_text",
+      "position": {
+        "x": 5593,
+        "y": 1482
+      },
+      "params": {
+        "root_path": {
+          "mode": "value",
+          "value": "${{ env.ECOSCOPE_WORKFLOWS_RESULTS }}"
+        },
+        "text": {
+          "mode": "connect",
+          "from": [
+            "stock_intensity_sparkline"
+          ]
+        }
+      },
+      "name": "Save Stock Intensity Sparkline"
+    },
+    {
+      "id": "stocking_density_sparkline_html",
+      "task": "persist_text",
+      "position": {
+        "x": 5593,
+        "y": 1872
+      },
+      "params": {
+        "root_path": {
+          "mode": "value",
+          "value": "${{ env.ECOSCOPE_WORKFLOWS_RESULTS }}"
+        },
+        "text": {
+          "mode": "connect",
+          "from": [
+            "stocking_density_sparkline"
+          ]
+        }
+      },
+      "name": "Save Stocking Density Sparkline"
+    },
+    {
+      "id": "graze_rest_ratio_sparkline_html",
+      "task": "persist_text",
+      "position": {
+        "x": 5593,
+        "y": 2460
+      },
+      "params": {
+        "root_path": {
+          "mode": "value",
+          "value": "${{ env.ECOSCOPE_WORKFLOWS_RESULTS }}"
+        },
+        "text": {
+          "mode": "connect",
+          "from": [
+            "graze_rest_ratio_sparkline"
+          ]
+        }
+      },
+      "name": "Save Grazing to Rest Ratio Sparkline"
+    },
+    {
+      "id": "grazing_intensity_chart_html",
+      "task": "persist_text",
+      "position": {
+        "x": 5593,
+        "y": 838
+      },
+      "params": {
+        "root_path": {
+          "mode": "value",
+          "value": "${{ env.ECOSCOPE_WORKFLOWS_RESULTS }}"
+        },
+        "text": {
+          "mode": "connect",
+          "from": [
+            "grazing_intensity_chart"
+          ]
+        }
+      },
+      "name": "Save Grazing Intensity Chart"
+    },
+    {
+      "id": "effective_intensity_chart_html",
+      "task": "persist_text",
+      "position": {
+        "x": 5593,
+        "y": 1036
+      },
+      "params": {
+        "root_path": {
+          "mode": "value",
+          "value": "${{ env.ECOSCOPE_WORKFLOWS_RESULTS }}"
+        },
+        "text": {
+          "mode": "connect",
+          "from": [
+            "effective_intensity_chart"
+          ]
+        }
+      },
+      "name": "Save Effective Grazing Intensity Chart"
+    },
+    {
+      "id": "grazing_metrics_gdf",
+      "task": "dataframe_to_geodataframe",
+      "position": {
+        "x": 3595,
+        "y": 548
+      },
+      "params": {
+        "df": {
+          "mode": "connect",
+          "from": [
+            "grazing_metrics_with_geometry"
+          ]
+        },
+        "drop_missing": {
+          "mode": "value",
+          "value": false
+        },
+        "x_column": {
+          "mode": "value",
+          "value": null
+        },
+        "y_column": {
+          "mode": "value",
+          "value": null
+        },
+        "geometry_column": {
+          "mode": "value",
+          "value": "geometry"
+        },
+        "crs": {
+          "mode": "value",
+          "value": "EPSG:4326"
+        },
+        "to_crs": {
+          "mode": "value",
+          "value": null
+        }
+      },
+      "name": "Convert Grazing Metrics to Map Data"
+    },
+    {
+      "id": "stock_intensity_widget",
+      "task": "create_plot_widget_single_view",
+      "position": {
+        "x": 6003,
+        "y": 1482
+      },
+      "params": {
+        "title": {
+          "mode": "value",
+          "value": "Stocking Intensity"
+        },
+        "data": {
+          "mode": "connect",
+          "from": [
+            "stock_intensity_sparkline_html"
+          ]
+        }
+      },
+      "name": "Stock Intensity Widget",
+      "skipif": {
+        "conditions": [
+          "never"
+        ]
+      }
+    },
+    {
+      "id": "stocking_density_widget",
+      "task": "create_plot_widget_single_view",
+      "position": {
+        "x": 6003,
+        "y": 1680
+      },
+      "params": {
+        "title": {
+          "mode": "value",
+          "value": "Stocking Density"
+        },
+        "data": {
+          "mode": "connect",
+          "from": [
+            "stocking_density_sparkline_html"
+          ]
+        }
+      },
+      "name": "Stocking Density Widget",
+      "skipif": {
+        "conditions": [
+          "never"
+        ]
+      }
+    },
+    {
+      "id": "graze_rest_ratio_widget",
+      "task": "create_plot_widget_single_view",
+      "position": {
+        "x": 6003,
+        "y": 2460
+      },
+      "params": {
+        "title": {
+          "mode": "value",
+          "value": "Grazing to Rest Ratio"
+        },
+        "data": {
+          "mode": "connect",
+          "from": [
+            "graze_rest_ratio_sparkline_html"
+          ]
+        }
+      },
+      "name": "Grazing to Rest Ratio Widget",
+      "skipif": {
+        "conditions": [
+          "never"
+        ]
+      }
+    },
+    {
+      "id": "grazing_intensity_widget",
+      "task": "create_plot_widget_single_view",
+      "position": {
+        "x": 6003,
+        "y": 1086
+      },
+      "params": {
+        "title": {
+          "mode": "value",
+          "value": "Grazing Intensity"
+        },
+        "data": {
+          "mode": "connect",
+          "from": [
+            "grazing_intensity_chart_html"
+          ]
+        }
+      },
+      "name": "Grazing Intensity Widget",
+      "skipif": {
+        "conditions": [
+          "never"
+        ]
+      }
+    },
+    {
+      "id": "effective_intensity_widget",
+      "task": "create_plot_widget_single_view",
+      "position": {
+        "x": 6003,
+        "y": 1284
+      },
+      "params": {
+        "title": {
+          "mode": "value",
+          "value": "Effective Grazing Intensity"
+        },
+        "data": {
+          "mode": "connect",
+          "from": [
+            "effective_intensity_chart_html"
+          ]
+        }
+      },
+      "name": "Effective Grazing Intensity Widget",
+      "skipif": {
+        "conditions": [
+          "never"
+        ]
+      }
+    },
+    {
+      "id": "cattle_count_colors",
+      "task": "apply_choropleth_colormap",
+      "position": {
+        "x": 4005,
+        "y": 792
+      },
+      "params": {
+        "df": {
+          "mode": "connect",
+          "from": [
+            "grazing_metrics_gdf"
+          ]
+        },
+        "count_column": {
+          "mode": "value",
+          "value": "Cattle count"
+        },
+        "colormap_min": {
+          "mode": "value",
+          "value": 0.15
+        },
+        "colormap_max": {
+          "mode": "value",
+          "value": 0.995
+        },
+        "colormap": {
+          "mode": "value",
+          "value": "Blues"
+        },
+        "fill_color_column": {
+          "mode": "value",
+          "value": "fill_color"
+        },
+        "label_column": {
+          "mode": "value",
+          "value": "choropleth_label"
+        },
+        "max_classes": {
+          "mode": "value",
+          "value": 5
+        }
+      },
+      "name": "Color Blocks by Cattle Count"
+    },
+    {
+      "id": "map_view_state",
+      "task": "compute_view_state_from_gdf",
+      "position": {
+        "x": 4730,
+        "y": 988
+      },
+      "params": {
+        "gdf": {
+          "mode": "connect",
+          "from": [
+            "cattle_count_colors"
+          ]
+        },
+        "pitch": {
+          "mode": "value",
+          "value": 0
+        },
+        "bearing": {
+          "mode": "value",
+          "value": 0
+        },
+        "max_zoom": {
+          "mode": "value",
+          "value": 18
+        }
+      },
+      "name": "Zoom Map to Grazing Blocks"
+    },
+    {
+      "id": "zone_boundaries_layer",
+      "task": "create_geojson_layer",
+      "position": {
+        "x": 3595,
+        "y": 302
+      },
+      "params": {
+        "geodataframe": {
+          "mode": "connect",
+          "from": [
+            "zone_boundary_colors"
+          ]
+        },
+        "layer_style": {
+          "mode": "value",
+          "value": {
+            "auto_highlight": false,
+            "opacity": 1,
+            "pickable": true,
+            "filled": false,
+            "stroked": true,
+            "extruded": false,
+            "wireframe": false,
+            "get_fill_color": "grazing_zone_colors",
+            "get_line_color": "[0, 0, 0]",
+            "get_line_width": 1,
+            "get_elevation": null,
+            "get_point_radius": 1,
+            "line_width_units": "pixels",
+            "line_width_scale": 1,
+            "line_width_min_pixels": 0,
+            "line_width_max_pixels": null,
+            "line_miter_limit": 4,
+            "line_joint_rounded": false,
+            "elevation_scale": 1,
+            "point_radius_units": "pixels",
+            "point_radius_scale": 1,
+            "point_radius_min_pixels": 0,
+            "point_radius_max_pixels": null,
+            "billboard": false
+          }
+        },
+        "legend": {
+          "mode": "value",
+          "value": {
+            "title": "Legend",
+            "label_column": "name",
+            "color_column": "grazing_zone_colors",
+            "values": [
+              {
+                "label": "Boundaries",
+                "color": "#000000"
+              }
+            ]
+          }
+        },
+        "tooltip_columns": {
+          "mode": "value",
+          "value": [
+            "feature_type"
+          ]
+        },
+        "data_url": {
+          "mode": "value",
+          "value": null
+        }
+      },
+      "name": "Grazing Zone Boundaries Layer"
+    },
+    {
+      "id": "cattle_count_layer",
+      "task": "create_geojson_layer",
+      "position": {
+        "x": 4369,
+        "y": 744
+      },
+      "params": {
+        "geodataframe": {
+          "mode": "connect",
+          "from": [
+            "cattle_count_colors"
+          ]
+        },
+        "layer_style": {
+          "mode": "value",
+          "value": {
+            "auto_highlight": false,
+            "opacity": 0.65,
+            "pickable": true,
+            "filled": true,
+            "stroked": true,
+            "extruded": false,
+            "wireframe": false,
+            "get_fill_color": "fill_color",
+            "get_line_color": "fill_color",
+            "get_line_width": 1,
+            "get_elevation": null,
+            "get_point_radius": 1,
+            "line_width_units": "pixels",
+            "line_width_scale": 1,
+            "line_width_min_pixels": 0,
+            "line_width_max_pixels": null,
+            "line_miter_limit": 4,
+            "line_joint_rounded": false,
+            "elevation_scale": 1,
+            "point_radius_units": "pixels",
+            "point_radius_scale": 1,
+            "point_radius_min_pixels": 0,
+            "point_radius_max_pixels": null,
+            "billboard": false
+          }
+        },
+        "legend": {
+          "mode": "value",
+          "value": {
+            "title": "Cattle Count",
+            "label_column": "choropleth_label",
+            "color_column": "fill_color",
+            "sort": null,
+            "label_suffix": null
+          }
+        },
+        "data_url": {
+          "mode": "value",
+          "value": null
+        },
+        "tooltip_columns": {
+          "mode": "value",
+          "value": null
+        }
+      },
+      "name": "Cattle Count Layer"
+    },
+    {
+      "id": "map_layers",
+      "task": "combine_deckgl_map_layers",
+      "position": {
+        "x": 4730,
+        "y": 711
+      },
+      "params": {
+        "static_layers": {
+          "mode": "connect",
+          "from": [
+            "zone_boundaries_layer"
+          ]
+        },
+        "grouped_layers": {
+          "mode": "connect",
+          "from": [
+            "cattle_count_layer"
+          ]
+        }
+      },
+      "name": "Combine Map Layers"
+    },
+    {
+      "id": "grazing_intensity_views",
+      "task": "merge_widget_views",
+      "position": {
+        "x": 6792,
+        "y": 1175
+      },
+      "params": {
+        "widgets": {
+          "mode": "connect",
+          "from": [
+            "grazing_intensity_widget"
+          ],
+          "list": true
+        }
+      },
+      "name": "Merge Grazing Intensity Widget"
+    },
+    {
+      "id": "livestock_count_map",
+      "task": "draw_map",
+      "position": {
+        "x": 6792,
+        "y": 857
+      },
+      "params": {
+        "geo_layers": {
+          "mode": "connect",
+          "from": [
+            "map_layers"
+          ]
+        },
+        "tile_layers": {
+          "mode": "connect",
+          "from": [
+            "base_maps"
+          ]
+        },
+        "legend_style": {
+          "mode": "value",
+          "value": {
+            "placement": "bottom-right",
+            "format_title": true
+          }
+        },
+        "view_state": {
+          "mode": "connect",
+          "from": [
+            "map_view_state"
+          ]
+        },
+        "static": {
+          "mode": "value",
+          "value": false
+        },
+        "output_type": {
+          "mode": "value",
+          "value": "html"
+        },
+        "title": {
+          "mode": "value",
+          "value": ""
+        },
+        "max_zoom": {
+          "mode": "value",
+          "value": 20
+        }
+      },
+      "name": "Draw Livestock Count Map"
+    },
+    {
+      "id": "effective_intensity_views",
+      "task": "merge_widget_views",
+      "position": {
+        "x": 7168,
+        "y": 1310
+      },
+      "params": {
+        "widgets": {
+          "mode": "connect",
+          "from": [
+            "effective_intensity_widget"
+          ],
+          "list": true
+        }
+      },
+      "name": "Merge Effective Grazing Intensity Widget"
+    },
+    {
+      "id": "stock_intensity_views",
+      "task": "merge_widget_views",
+      "position": {
+        "x": 7578,
+        "y": 1518
+      },
+      "params": {
+        "widgets": {
+          "mode": "connect",
+          "from": [
+            "stock_intensity_widget"
+          ],
+          "list": true
+        }
+      },
+      "name": "Merge Stock Intensity Widget"
+    },
+    {
+      "id": "livestock_count_map_html",
+      "task": "persist_text",
+      "position": {
+        "x": 7168,
+        "y": 1048
+      },
+      "params": {
+        "root_path": {
+          "mode": "value",
+          "value": "${{ env.ECOSCOPE_WORKFLOWS_RESULTS }}"
+        },
+        "text": {
+          "mode": "connect",
+          "from": [
+            "livestock_count_map"
+          ]
+        }
+      },
+      "name": "Save Livestock Count Map"
+    },
+    {
+      "id": "stocking_density_views",
+      "task": "merge_widget_views",
+      "position": {
+        "x": 6792,
+        "y": 1574
+      },
+      "params": {
+        "widgets": {
+          "mode": "connect",
+          "from": [
+            "stocking_density_widget"
+          ],
+          "list": true
+        }
+      },
+      "name": "Merge Stocking Density Widget"
+    },
+    {
+      "id": "livestock_count_map_widget",
+      "task": "create_map_widget_single_view",
+      "position": {
+        "x": 7578,
+        "y": 1048
+      },
+      "params": {
+        "data": {
+          "mode": "connect",
+          "from": [
+            "livestock_count_map_html"
+          ]
+        },
+        "title": {
+          "mode": "value",
+          "value": "Livestock Count"
+        }
+      },
+      "name": "Livestock Count Map Widget",
+      "skipif": {
+        "conditions": [
+          "never"
+        ]
+      }
+    },
+    {
+      "id": "graze_rest_ratio_views",
+      "task": "merge_widget_views",
+      "position": {
+        "x": 6392,
+        "y": 1630
+      },
+      "params": {
+        "widgets": {
+          "mode": "connect",
+          "from": [
+            "graze_rest_ratio_widget"
+          ],
+          "list": true
+        }
+      },
+      "name": "Merge Grazing to Rest Ratio Widget"
+    },
+    {
+      "id": "livestock_count_map_views",
+      "task": "merge_widget_views",
+      "position": {
+        "x": 7942,
+        "y": 1084
+      },
+      "params": {
+        "widgets": {
+          "mode": "connect",
+          "from": [
+            "livestock_count_map_widget"
+          ],
+          "list": true
+        }
+      },
+      "name": "Merge Livestock Count Map Widget"
+    },
+    {
+      "id": "grazing_metrics_csv",
+      "task": "persist_df",
+      "position": {
+        "x": 5183,
+        "y": 2166
+      },
+      "params": {
+        "root_path": {
+          "mode": "value",
+          "value": "${{ env.ECOSCOPE_WORKFLOWS_RESULTS }}"
+        },
+        "df": {
+          "mode": "connect",
+          "from": [
+            "grazing_metrics"
+          ]
+        },
+        "filename": {
+          "mode": "value",
+          "value": null
+        },
+        "filetype": {
+          "mode": "value",
+          "value": "csv"
+        }
+      },
+      "name": "Save Grazing Metrics CSV"
+    },
+    {
+      "id": "dashboard",
+      "task": "gather_dashboard",
+      "position": {
+        "x": 8343,
+        "y": 1402
+      },
+      "params": {
+        "details": {
+          "mode": "connect",
+          "from": [
+            "workflow_details"
+          ]
+        },
+        "groupers": {
+          "mode": "connect",
+          "from": [
+            "dashboard_groupers"
+          ]
+        },
+        "time_range": {
+          "mode": "connect",
+          "from": [
+            "time_range"
+          ]
+        },
+        "widgets": {
+          "mode": "connect",
+          "from": [
+            "stock_intensity_views",
+            "stocking_density_views",
+            "graze_rest_ratio_views",
+            "grazing_intensity_views",
+            "effective_intensity_views",
+            "livestock_count_map_views"
+          ],
+          "list": true
+        }
+      },
+      "name": "Gather Dashboard"
+    }
+  ],
+  "compiled": null,
+  "groups": [],
+  "packages": [
+    {
+      "name": "ecoscope-platform",
+      "version": "==2.28.0",
+      "channel": "https://repo.prefix.dev/ecoscope-workflows/"
+    },
+    {
+      "name": "ecoscope-workflows-ext-custom",
+      "version": "==0.1.5",
+      "channel": "https://repo.prefix.dev/ecoscope-workflows-custom/"
+    },
+    {
+      "name": "ecoscope-workflows-ext-eden",
+      "version": "==0.0.12",
+      "channel": "https://repo.prefix.dev/ecoscope-workflows-custom/"
+    },
+    {
+      "name": "pydeck",
+      "version": "==0.9.2",
+      "channel": "conda-forge"
+    },
+    {
+      "name": "ecoscope-workflows-ext-distance-sample-counts",
+      "version": "==1.1.6",
+      "channel": "https://repo.prefix.dev/ecoscope-workflows-custom/"
+    },
+    {
+      "name": "ecoscope-workflows-ext-mep",
+      "version": "==1.11.2",
+      "channel": "https://repo.prefix.dev/ecoscope-workflows-custom/"
+    },
+    {
+      "name": "ecoscope-workflows-ext-wwf-virunga",
+      "version": "==1.0.1",
+      "channel": "https://repo.prefix.dev/ecoscope-workflows-custom/"
+    },
+    {
+      "name": "ecoscope-workflows-ext-ste",
+      "version": "==0.0.34",
+      "channel": "https://repo.prefix.dev/ecoscope-workflows-custom/"
+    }
+  ],
+  "spec_extra": {
+    "rjsf-overrides": {
+      "uiSchema": {
+        "ui:order": [
+          "workflow_details",
+          "time_range",
+          "er_connection",
+          "livestock_movement_events",
+          "cattle_count_events",
+          "features_by_type"
+        ]
+      },
+      "properties": {
+        "livestock_movement_events.properties.event_types.ecoscope:transform": [
+          {
+            "transformer": "EarthRangerEnumResolver",
+            "transformer_kws": {
+              "type": "event_type",
+              "depends_on": "properties.er_connection.properties.data_source.properties.name"
+            }
+          }
+        ],
+        "cattle_count_events.properties.event_types.ecoscope:transform": [
+          {
+            "transformer": "EarthRangerEnumResolver",
+            "transformer_kws": {
+              "type": "event_type",
+              "depends_on": "properties.er_connection.properties.data_source.properties.name"
+            }
+          }
+        ]
+      }
+    },
+    "task-instance-defaults": {
+      "skipif": {
+        "conditions": [
+          "any_is_empty_df",
+          "any_dependency_skipped"
+        ]
+      }
+    }
+  },
+  "imported": {
+    "from": null,
+    "spec_id": "livestock_grazing_intensity",
+    "at": "2026-11-11T13:25:06+00:00"
+  },
+  "env": "38e76b8775a0",
+  "play_values": {
+    "er_connection": {
+      "data_source": {
+        "name": "Naboisho Conservancy"
+      }
+    },
+    "features_by_type": {
+      "feature_type_names": [
+        "Grazing Zone",
+        "Grazing blocks"
+      ]
+    },
+    "workflow_details": {
+      "name": "h "
+    }
+  },
+  "notes": [],
+  "frames": [],
+  "blocks": [],
+  "layout": {
+    "stock_intensity_views": {
+      "x": 0,
+      "y": 0,
+      "w": 3,
+      "h": 5
+    },
+    "stocking_density_views": {
+      "x": 3,
+      "y": 0,
+      "w": 3,
+      "h": 5
+    },
+    "graze_rest_ratio_views": {
+      "x": 6,
+      "y": 0,
+      "w": 3,
+      "h": 5
+    },
+    "grazing_intensity_views": {
+      "x": 5,
+      "y": 5,
+      "w": 5,
+      "h": 10
+    },
+    "effective_intensity_views": {
+      "x": 0,
+      "y": 5,
+      "w": 5,
+      "h": 10
+    },
+    "livestock_count_map_views": {
+      "x": 0,
+      "y": 15,
+      "w": 10,
+      "h": 13
+    }
+  },
+  "folded": {}
+}

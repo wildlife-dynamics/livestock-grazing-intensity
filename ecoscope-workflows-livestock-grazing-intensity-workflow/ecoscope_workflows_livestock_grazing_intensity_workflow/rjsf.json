@@ -6,6 +6,11 @@
         "name": {
           "title": "Workflow Name",
           "type": "string"
+        },
+        "description": {
+          "default": "",
+          "title": "Workflow Description",
+          "type": "string"
         }
       },
       "required": [
@@ -59,32 +64,20 @@
       "description": "Choose the period of time to analyze.",
       "title": "Time Range"
     },
-    "events": {
+    "rest_target": {
       "additionalProperties": false,
       "properties": {
-        "event_types": {
-          "description": "Specify the event type(s) to analyze (optional). Leave this section empty to analyze all event types.",
-          "items": {
-            "type": "string"
-          },
-          "title": "Event Types",
-          "type": "array",
-          "ecoscope:transform": [
-            {
-              "transformer": "EarthRangerEnumResolver",
-              "transformer_kws": {
-                "type": "event_type",
-                "depends_on": "properties.er_connection.properties.data_source.properties.name"
-              }
-            }
-          ]
+        "rest_target_days": {
+          "default": 60,
+          "description": "Days of rest a block should get before it is grazed again. A return after fewer days is flagged as too soon.",
+          "exclusiveMinimum": 0,
+          "title": "Rest Target (days)",
+          "type": "number"
         }
       },
-      "required": [
-        "event_types"
-      ],
       "type": "object",
-      "title": "Livestock Movement Events"
+      "required": [],
+      "title": "Rest Target"
     },
     "base_maps": {
       "additionalProperties": false,
@@ -342,6 +335,12 @@
     }
   },
   "uiSchema": {
+    "workflow_details": {
+      "ui:order": [
+        "name",
+        "description"
+      ]
+    },
     "time_range": {
       "ui:order": [
         "since",
@@ -353,9 +352,9 @@
       "workflow_details",
       "er_connection",
       "time_range",
-      "events",
-      "base_maps",
-      "features_by_type"
+      "features_by_type",
+      "rest_target",
+      "base_maps"
     ]
   },
   "additionalProperties": false
