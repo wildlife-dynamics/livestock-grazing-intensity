@@ -1,6 +1,0 @@
-designer-run:
-  name: livestock-grazing-intensity
-  description: The values used with ▶ Run in the designer.
-  params:
-    workflow_details:
-      name: g
